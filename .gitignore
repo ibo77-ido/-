@@ -1,0 +1,23 @@
+
+# IDE 配置
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Unity
+Library/
+Temp/
+Logs/
+UserSettings/
+
+# CodeBuddy
+.codebuddy/

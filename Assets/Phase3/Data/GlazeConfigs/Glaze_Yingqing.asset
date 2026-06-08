@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22f02a2f0863a60428b062c235e698e0, type: 3}
+  m_Name: Glaze_Yingqing
+  m_EditorClassIdentifier: 
+  glazeID: GLAZE_001
+  nameCN: "\u5F71\u9752\u91C9"
+  nameEN: Yingqing
+  copper: 0
+  iron: 0.02
+  cobalt: 0
+  temperatureMin: 1250
+  temperatureMax: 1280
+  colorType: 0
+  displayColor: {r: 0.78431374, g: 0.85490197, b: 0.8039216, a: 1}
+  description: "\u9752\u767D\u4E2D\u5E26\u6D45\u6E56\u8272\uFF0C\u6676\u83B9\u6DA6\u5F7B\u900F\u660E\u6027\u5F3A\uFF0C\u6697\u96D5\u82B1\u7EB9\u5185\u5916\u53EF\u6620\u89C1\uFF0C\u6545\u79F0\u5F71\u9752"
+  difficulty: 2

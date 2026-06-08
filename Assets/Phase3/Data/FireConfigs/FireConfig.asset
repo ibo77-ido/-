@@ -1,0 +1,190 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b1f8236a90162a47ada8ec6da67a963, type: 3}
+  m_Name: FireConfig
+  m_EditorClassIdentifier: 
+  stages:
+  - stageId: S1
+    stageNameCN: "\u9884\u70ED\u6392\u6C34"
+    stageNameEN: Preheat
+    tempStart: 0
+    tempEnd: 300
+    durationMin: 4
+    durationMax: 6
+    durationMedian: 5
+    atmosphere: Oxidation
+    penaltyCap: 3
+  - stageId: S2
+    stageNameCN: "\u6676\u4F53\u8131\u6C34"
+    stageNameEN: Dehydration
+    tempStart: 300
+    tempEnd: 600
+    durationMin: 4
+    durationMax: 6
+    durationMedian: 5
+    atmosphere: Oxidation
+    penaltyCap: 3
+  - stageId: S3
+    stageNameCN: "\u6C27\u5316\u70E7\u6E05"
+    stageNameEN: OxidationClear
+    tempStart: 600
+    tempEnd: 1000
+    durationMin: 8
+    durationMax: 12
+    durationMedian: 10
+    atmosphere: Oxidation
+    penaltyCap: 4
+  - stageId: S4
+    stageNameCN: "\u8FD8\u539F\u70E7\u6210"
+    stageNameEN: Reduction
+    tempStart: 1000
+    tempEnd: 1200
+    durationMin: 6
+    durationMax: 8
+    durationMedian: 7
+    atmosphere: Reduction
+    penaltyCap: 5
+  - stageId: S5
+    stageNameCN: "\u5F3A\u8FD8\u539F\u4FDD\u6E29"
+    stageNameEN: StrongReduction
+    tempStart: 1200
+    tempEnd: 1280
+    durationMin: 2
+    durationMax: 4
+    durationMedian: 3
+    atmosphere: Reduction
+    penaltyCap: 3
+  - stageId: S6
+    stageNameCN: "\u9AD8\u6E29\u6210\u74F7"
+    stageNameEN: HighTemp
+    tempStart: 1280
+    tempEnd: 1320
+    durationMin: 1
+    durationMax: 3
+    durationMedian: 2
+    atmosphere: Reduction
+    penaltyCap: 4
+  - stageId: S7
+    stageNameCN: "\u6025\u51B7\u6BB5"
+    stageNameEN: RapidCool
+    tempStart: 1320
+    tempEnd: 700
+    durationMin: 4
+    durationMax: 6
+    durationMedian: 5
+    atmosphere: Neutral
+    penaltyCap: 2
+  - stageId: S8
+    stageNameCN: "\u7F13\u51B7\u6BB5"
+    stageNameEN: SlowCool
+    tempStart: 700
+    tempEnd: 25
+    durationMin: 30
+    durationMax: 40
+    durationMedian: 35
+    atmosphere: Neutral
+    penaltyCap: 1
+  flameSwitches:
+  - switchId: FS1
+    fromColorCN: "\u4EAE\u7EA2\u8272"
+    toColorCN: "\u6A31\u7EA2\u8272"
+    penaltyPoints: 3
+  - switchId: FS2
+    fromColorCN: "\u6A58\u9EC4\u8272"
+    toColorCN: "\u6697\u9EC4\u8272"
+    penaltyPoints: 8
+  - switchId: FS3
+    fromColorCN: "\u6697\u9EC4\u8272"
+    toColorCN: "\u4EAE\u9EC4\u8272"
+    penaltyPoints: 3
+  - switchId: FS4
+    fromColorCN: "\u9EC4\u767D\u8272"
+    toColorCN: "\u9752\u767D\u8272"
+    penaltyPoints: 6
+  defects:
+  - defectId: D1
+    nameCN: "\u5F00\u88C2/\u7A91\u88C2"
+    nameEN: Crack
+    isFatal: 1
+    penaltyPoints: 0
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D2
+    nameCN: "\u8FC7\u70E7(\u4E25\u91CD)"
+    nameEN: SevereOverfire
+    isFatal: 1
+    penaltyPoints: 0
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D3
+    nameCN: "\u751F\u70E7/\u6B20\u70E7"
+    nameEN: Underfire
+    isFatal: 0
+    penaltyPoints: 20
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D4
+    nameCN: "\u8FC7\u70E7(\u8F7B\u5EA6)"
+    nameEN: MildOverfire
+    isFatal: 0
+    penaltyPoints: 15
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D5
+    nameCN: "\u53D8\u5F62"
+    nameEN: Deformation
+    isFatal: 0
+    penaltyPoints: 10
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D6
+    nameCN: "\u9634\u9EC4"
+    nameEN: Yellowing
+    isFatal: 0
+    penaltyPoints: 10
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D7
+    nameCN: "\u8D77\u6CE1/\u91C9\u6CE1"
+    nameEN: Blister
+    isFatal: 0
+    penaltyPoints: 8
+    isStackable: 1
+    triggerCondition: 
+  - defectId: D8
+    nameCN: "\u7A91\u7C98"
+    nameEN: KilnAdhesion
+    isFatal: 0
+    penaltyPoints: 8
+    isStackable: 1
+    triggerCondition: 
+  - defectId: D9
+    nameCN: "\u70DF\u718F"
+    nameEN: Smoking
+    isFatal: 0
+    penaltyPoints: 7
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D10
+    nameCN: "\u65E0\u5149/\u5931\u900F"
+    nameEN: Dullness
+    isFatal: 0
+    penaltyPoints: 10
+    isStackable: 0
+    triggerCondition: 
+  - defectId: D11
+    nameCN: "\u9488\u5B54"
+    nameEN: Pinhole
+    isFatal: 0
+    penaltyPoints: 5
+    isStackable: 1
+    triggerCondition: 

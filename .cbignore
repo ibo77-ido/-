@@ -1,0 +1,9 @@
+# CodeBuddy 不需要扫描的文件
+Library/
+Temp/
+Logs/
+UserSettings/
+.vscode/
+.idea/
+*.csproj
+*.sln
