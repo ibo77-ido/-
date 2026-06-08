@@ -954,3 +954,31 @@ Chosen Option: Option B
 Reason: 程序化验证可精确控制测试输入，覆盖所有 31 个场景边界条件。Shape/Glaze/Fire/Result 四层 Calculator 全部为纯函数，无需 UI 交互即可验证正确性。E2E 连续 3 轮通过 resultSystem.CalculateResult() 验证完整数据流。
 
 Impact: 31/31 PASS。新增 FireCalculator/FiringSystem Debug 日志便于观测。E10/E30/E31 为已知 scope limitation（缺陷判定/PenaltySource 需要外部 FiringSystem 数据输入），当前 stub 实现不影响核心计算逻辑验证。
+
+---
+
+# Decision
+
+Decision ID: D044
+
+Date: 2026-06-08
+
+Context: PHASE5 是否推进
+
+Options:
+
+Option A: 实施 PHASE5（PenaltySource 去重、温度曲线引擎、Debug UI、存档系统）
+Pros: 完善 Runtime 层的缺陷判定与扣分逻辑
+Cons: 大量工作量，且与 Phase6 核心玩法设计对接成本高
+
+Option B: 跳过 PHASE5，直接进入 Phase6
+Pros: 节省开发时间，Phase6 的玩法层可直接覆盖 PHASE5 的设计需求
+Cons: PenaltySource 去重（E10/E30/E31）仍为 stub 状态
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户决定跳过 PHASE5，直接进入 Phase6 Implementation。
+
+Impact: PHASE5 closed as SKIPPED。STATE.md 更新，Ready For 改为 Phase6。E10/E30/E31 的 stub 状态将在 Phase6 中解决。
