@@ -2,6 +2,7 @@ using UnityEngine;
 
 public enum GameState
 {
+    None,
     Order,
     Shape,
     Glaze,
@@ -11,7 +12,7 @@ public enum GameState
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private GameState currentState = GameState.Order;
+    [SerializeField] private GameState currentState = GameState.None;
 
     [SerializeField] private GameObject panelOrder;
     [SerializeField] private GameObject panelShape;
@@ -34,7 +35,21 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        UpdatePanels();
+    }
+
+    public void StartGameplayLoop()
+    {
+        Debug.Log("[GameManager] StartGameplayLoop");
+        if (orderManager != null) orderManager.GetCurrentOrder();
+        ResetAllSystems();
         SetState(GameState.Order);
+    }
+
+    public void StopGameplayLoop()
+    {
+        Debug.Log("[GameManager] StopGameplayLoop");
+        SetState(GameState.None);
     }
 
     public void SetState(GameState newState)

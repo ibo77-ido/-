@@ -982,3 +982,780 @@ Chosen Option: Option B
 Reason: 用户决定跳过 PHASE5，直接进入 Phase6 Implementation。
 
 Impact: PHASE5 closed as SKIPPED。STATE.md 更新，Ready For 改为 Phase6。E10/E30/E31 的 stub 状态将在 Phase6 中解决。
+
+---
+
+# Decision
+
+Decision ID: D045
+
+Date: 2026-06-08
+
+Context: P6-01 Scene Foundation — 最小安全落地策略
+
+Options:
+
+Option A: 一次性完成 P6-01 全部内容（场景+地图+障碍+围墙+交互点+NavMesh）
+Pros: 一次到位
+Cons: 变更量大，出问题难定位；NavMesh 烘焙依赖所有对象就位
+
+Option B: 最小安全落地：先创建目录+材质+场景+根节点结构，不碰 Phase3，不先烘焙 NavMesh
+Pros: 风险最小，可逐步增量；场景骨架先落地再填充
+Cons: 需要多次提交
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户建议采用最小安全落地策略，先验证场景骨架可运行，再逐步填充地图内容。
+
+Impact: 已创建 Assets/Phase6/ 目录结构（Scenes/Scripts/Prefabs/Data/Materials）、两个材质（Mat_Walkable_Green/Mat_Static_Gray）、Workshop_TestScene 场景及完整根节点结构（_MapRoot含9个子节点 + _PlayerRoot + _CameraRoot + _ConfigRoot + _Validators）。场景已保存。未修改 Phase3。
+
+---
+
+# Decision
+
+Decision ID: D046
+
+Date: 2026-06-08
+
+Context: P6-01 Step 2 — 地图填充
+
+Options:
+
+Option A: 使用 UnityMCP 逐个创建 Cube + 赋材质
+Pros: 精确控制每个对象的位置/尺寸/材质
+Cons: 每个对象需要 2 次 MCP 调用（创建+赋材质），速度慢
+
+---
+
+Chosen Option: Option A
+
+Reason: UnityMCP 是当前唯一可用的场景编辑手段，逐个创建虽然慢但可精确对齐设计文档坐标。
+
+Impact: 已创建：
+- Ground_Base_Cube (80x60 灰色地面)
+- 9 个可移动区域 (WalkableRoot, 绿色, Y=0.01)
+- 7 个静止障碍 (StaticBlockerRoot, 灰色, 含 BoxCollider)
+- 4 面围墙 (WallRoot, 灰色, 含 BoxCollider)
+- 6 个交互点 (AreaTriggerRoot, 空 GameObject)
+- 4 个扩展锚点 (ExpansionAnchorRoot, 空 GameObject)
+场景已保存。NavMesh 未烘焙（待后续步骤）。
+
+---
+
+# Decision
+
+Decision ID: D047
+
+Date: 2026-06-08
+
+Context: P6-01 Step 3 — NavMesh 烘焙策略
+
+Options:
+
+Option A: 安装 com.unity.ai.navigation 包，使用 NavMeshSurface 组件烘焙
+Pros: 新版 API，支持运行时烘焙，更灵活
+Cons: 需要安装新包，可能引入兼容性问题
+
+Option B: 使用内置 UnityEditor.AI.NavMeshBuilder.BuildNavMesh() 烘焙
+Pros: 无需额外包，使用项目已有的 ai module
+Cons: 旧版 API，不支持运行时烘焙
+
+---
+
+Chosen Option: Option B
+
+Reason: 项目已有 com.unity.modules.ai，内置 NavMeshBuilder 可直接使用，无需额外安装包。Phase6 是白盒验证阶段，不需要运行时烘焙。com.unity.ai.navigation 1.1.5 已加入 manifest 但暂未生效，后续如需要可启用。
+
+Impact:
+- 移除 WalkableRoot 9 个 BoxCollider（地面不需要 Collider）
+- 所有可移动区域设为 isStatic + Walkable area
+- 所有障碍/围墙设为 isStatic + Not Walkable area
+- Ground_Base 设为 isStatic + Not Walkable area
+- NavMesh 烘焙成功，6/6 核心路线连通
+- PlayerSpawn (11, 0, 14.5) 已创建在 _PlayerRoot 下
+
+---
+
+# Decision
+
+Decision ID: D048
+
+Date: 2026-06-09
+
+Context: Phase6 地图白盒视角口径修正
+
+Options:
+
+Option A: 继续按通用 3D 白盒地图理解 P6-01，后续再调整相机与表现
+Pros: 不改已有文档结构
+Cons: 容易被误解为第三人称/第一人称 3D 场景，后续组件设计会跑偏
+
+Option B: 将 P6-01 明确为 2D 俯视/斜俯视白盒地图，逻辑仍使用 Unity X/Z 平面、3D Collider、Trigger 和 NavMesh
+Pros: 符合用户目标；保留已建 NavMesh/Collider/区域检测方案；P6-02 输入和相机可直接对齐
+Cons: 需要同步修改 P6-01/P6-02/P6-07 文档口径
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户明确要求 Phase6 地图为 2D 俯仰角/斜俯视地图，相关组件也必须同步修改。该方案能在不推翻现有 X/Z 坐标、NavMesh、Collider 设计的前提下，统一相机、移动输入、地图表现和测试标准。
+
+Impact:
+- `P6-01_SCENE_FOUNDATION.md` 增加 2D 俯视/斜俯视正交相机规范
+- `task-p6-01-scene.md` 增加 `Camera_2D_Oblique`、`Ground_Base` 非 NavMesh 来源、低高度白盒块等规则
+- `P6-02_CHARACTER_SYSTEM.md` 增加屏幕点击到 `Y=0` / `X/Z` 目标点转换、`CameraFollow2D` 和禁用第三人称相机规则
+- `task-p6-02-character.md` 增加斜俯视相机输入与 `CameraFollow2D` 交付物
+- `task-p6-07-test.md` 增加正交相机、点击转换、`Ground_Base` 非 NavMesh 来源等验收项
+- Phase6 后续实现继续使用 3D `Collider` / `Trigger` / `NavMesh`，不切换为 Unity 2D 物理
+
+---
+
+# Decision
+
+Decision ID: D049
+
+Date: 2026-06-09
+
+Context: Phase6 2.5D 国风地图结构修正
+
+Options:
+
+Option A: 继续让白盒块作为玩家最终可见地图
+Pros: 已有场景对象可直接看到，验证简单
+Cons: 不符合 2.5D 国风地图素材目标；视觉会偏向 3D 白盒原型
+
+Option B: 将白盒块降级为隐藏/调试逻辑层，新增 `ArtRoot` 作为 2D 国风地图素材层
+Pros: 符合用户目标；保留 X/Z、NavMesh、Collider、Trigger 逻辑；后续可直接替换国风地图素材
+Cons: 需要迁移当前 `_MapRoot` 层级，并新增 ArtRoot 占位
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户明确希望制作能够使用图片 2D 地图素材的 2.5D 国风俯仰角视觉游戏。当前 XZ 白盒可继续作为隐藏逻辑底盘，但不能作为最终玩家视觉。
+
+Impact:
+- P6-01 文档改为 `_MapRoot/LogicRoot` + `_MapRoot/ArtRoot`
+- `WalkableRoot`、`StaticBlockerRoot`、`WallRoot`、`AreaTriggerRoot`、`WorkstationRoot`、`RouteDebugRoot`、`ExpansionAnchorRoot` 归属 `LogicRoot`
+- `ArtRoot` 新增 `Map_Background_2D`、`Map_Buildings_2D`、`Map_Foreground_2D`、`Map_Overlay_2D`
+- 当前绿色/灰色白盒块定义为隐藏逻辑层或 Debug 半透明层
+- 新增 `Assets/Phase6/Scripts/Editor/Phase6MapStructureMigrator.cs`，用于把已生成场景迁移到 2.5D Art/Logic 分层结构
+- P6-02/P6-06/P6-07 文档同步补充隐藏逻辑层、2D 素材视觉层和测试要求
+
+---
+
+# Decision
+
+Decision ID: D050
+
+Date: 2026-06-09
+
+Context: P6-01 2.5D 结构迁移 + P6-02 Character System MVP 实施
+
+Options:
+
+Option A: 手动在 Unity 中执行 Phase6MapStructureMigrator 菜单，并逐个创建脚本/场景对象
+Pros: 可精确控制每个步骤
+Cons: 操作繁琐
+
+Option B: 通过 UnityMCP 自动执行迁移、脚本创建、场景对象创建和 Inspector 绑定
+Pros: 速度快，可批量操作
+Cons: 依赖 UnityMCP 连接
+
+---
+
+Chosen Option: Option B
+
+Reason: UnityMCP 已成功连接，可批量执行场景修改、脚本创建和组件绑定。
+
+Impact:
+- 执行 Phase6/Map/Apply 2.5D Art Logic Structure：LogicRoot/ArtRoot/Camera_2D_Oblique 创建，8 个子对象移入 LogicRoot，4 个 2D 素材占位层创建
+- 创建脚本：Phase6GameState.cs、Phase6GameManager.cs、CharacterConfigSO.cs、ICharacter.cs、PlayerCharacter.cs、MovementController.cs、CharacterStateMachine.cs、InputManager.cs、CameraFollow2D.cs
+- 创建场景对象：Phase6GameManager、InputManager、PlayerCharacter（含 MovementController/CharacterStateMachine/NavMeshAgent 组件）
+- Inspector 引用绑定：Phase6GameManager→playerCharacter/inputManager、InputManager→gameManager/playerCharacter/targetCamera、CameraFollow2D→target、PlayerCharacter→gameManager/movementController/stateMachine/navMeshAgent
+- PlayerCharacter 位置设为 (11, 0, 14.5)（PlayerSpawn）
+- Play Mode 验证：0 Error
+- 场景已保存
+
+---
+
+# Decision
+
+Decision ID: D051
+
+Date: 2026-06-09
+
+Context: P6-03 Interaction System 实施
+
+Options:
+
+Option A: 完整实现 IInteractable + InteractionPoint + InteractionController + TestUIRouter + TestUIPanel，通过 UnityMCP 自动创建场景对象和 UI
+Pros: 一次交付完整交互系统，可立即验证 E 键交互
+Cons: 变更量大
+
+---
+
+Chosen Option: Option A
+
+Reason: P6-03 架构文档已明确定义所有组件职责，UnityMCP 可用，直接完整实施。
+
+Impact:
+- 新建脚本：AreaType.cs、IInteractable.cs、InteractionPoint.cs、InteractionController.cs、TestUIRouter.cs、TestUIPanel.cs
+- 修改脚本：InputManager.cs（E 键 + UI 点击穿透保护）、PlayerCharacter.cs（InteractionController 引用）、CharacterStateMachine.cs（转换校验）、Phase6GameManager.cs（TestUIRouter + 状态同步）
+- 场景操作：6 个 InteractionPoint 组件挂载 + AreaType 配置、InteractionController 挂载、TestUIRouter 挂载、Canvas_TestUI + 6 个 TestUIPanel 创建、所有 Inspector 引用绑定
+- TestUIRouter.Start() 自动初始化所有 InteractionPoint 的 router 引用
+- InteractionController.Start() 自动查找 Phase6GameManager 和所有 InteractionPoint
+- Play Mode 验证：0 Error
+
+---
+
+# Decision
+
+Decision ID: D052
+
+Date: 2026-06-09
+
+Context: P6-04 Workstation System 实施
+
+Options:
+
+Option A: InteractionPoint 保留 IInteractable 实现，Workstation 仅做包装
+Pros: 改动小
+Cons: 职责不清，InteractionPoint 和 Workstation 都能触发交互，违反"Workstation 不直接打开 UI"规则
+
+Option B: InteractionPoint 退化为纯位置标记，Workstation 作为唯一 IInteractable 入口
+Pros: 职责清晰，符合架构文档；InteractionController 只需找 Workstation
+Cons: 需要重构 InteractionPoint 和 InteractionController
+
+---
+
+Chosen Option: Option B
+
+Reason: P6-04 架构文档明确 Workstation 持有 InteractionPoint 并实现 IInteractable，InteractionPoint 只是位置标记。
+
+Impact:
+- InteractionPoint 移除 IInteractable 实现，保留 AreaType/InteractionDistance/Gizmo + Initialize + GetUIRouter
+- InteractionController 改为扫描 Workstation（而非 InteractionPoint），通过 Workstation.InteractionPoint 判断距离
+- TestUIRouter.Start() 改为初始化 Workstation（而非 InteractionPoint）
+- 新建：WorkstationConfigSO.cs、Workstation.cs、WorkstationVisualController.cs
+- 场景创建 6 个 Workstation 根对象（LogicRoot + ArtRoot），现有 InteractionPoint 移入 LogicRoot
+- 创建 6 个 WorkstationConfigSO 资产并绑定
+- Play Mode 验证：0 Error
+
+---
+
+# Decision
+
+Decision ID: D053
+
+Date: 2026-06-09
+
+Context: P6-05 Area System 实施
+
+Options:
+
+Option A: AreaTrigger 使用 3D BoxCollider.isTrigger，玩家需要 Collider + Rigidbody(isKinematic)
+Pros: 标准 Unity Trigger 方案，可靠
+Cons: 需要给 PlayerCharacter 加 Rigidbody
+
+Option B: AreaTrigger 使用 Update 距离检测
+Pros: 不需要额外物理组件
+Cons: 性能差，每帧计算距离
+
+---
+
+Chosen Option: Option A
+
+Reason: 3D Trigger 方案符合架构文档要求（使用 3D Collider/Trigger），且性能优于距离检测。
+
+Impact:
+- 新建：AreaConfigSO.cs、AreaTrigger.cs、AreaManager.cs
+- 场景创建 6 个 AreaTrigger 对象（BoxCollider.isTrigger + AreaTrigger 组件）
+- 创建 6 个 AreaConfigSO 资产并绑定
+- 创建 AreaManager 场景对象
+- PlayerCharacter 新增 BoxCollider(0.6x1.8x0.6) + Rigidbody(isKinematic=true)
+- AreaManager 防抖动：0.3s debounce
+- Play Mode 验证：0 Error，区域检测正常（Entered: Order Area）
+
+---
+
+# Decision
+
+Decision ID: D054
+
+Date: 2026-06-09
+
+Context: P6-06 Scale System 实施
+
+Options:
+
+Option A: 各组件自行读取 WorkstationConfigSO.scale，ScaleManager 只提供统一入口
+Pros: 改动小
+Cons: 缩放来源不统一，WorkstationConfigSO.scale 和 ScaleManager 配置可能冲突
+
+Option B: ScaleManager 作为唯一缩放来源，WorkstationVisualController 优先使用 ScaleManager
+Pros: 缩放统一管理，SO 驱动，不冲突
+Cons: WorkstationVisualController 需要额外查找 ScaleManager
+
+---
+
+Chosen Option: Option B
+
+Reason: 架构文档明确 SO 驱动 + ScaleManager 统一管理。WorkstationVisualController 优先 ScaleManager，回退到 config.scale。
+
+Impact:
+- 新建：AssetScaleConfigSO.cs（characterScale/workstationScale/buildingScale）、ScaleManager.cs
+- 修改：WorkstationVisualController.cs（优先 ScaleManager.GetScaleConfig()，回退 config.scale）
+- 创建 AssetScaleConfig.asset + ScaleManager 场景对象并绑定
+- 规则：只缩放 ArtRoot，不动 LogicRoot，刷新后仍符合比例
+- Play Mode 验证：0 Error，ScaleManager 正常应用缩放
+
+---
+
+# Decision
+
+Decision ID: D055
+
+Date: 2026-06-09
+
+Context: Phase6 审计修复（P6-01~P6-06 骨架齐全但 MVP 闭环断点）
+
+Options:
+
+Option A: 仅修脚本，不修改场景对象
+Pros: 变更少
+Cons: Game View 仍可能不可见，ArtRoot/工作台视觉仍为空，Inspector 绑定缺口无法闭环
+
+Option B: 同步修脚本和场景绑定，并增加最小 fallback 视觉
+Pros: 直接闭环 P6-01~P6-06 的核心验收：相机可见、玩家可移动、ArtRoot 可见、工作台可刷新、UI 可关闭
+Cons: 会新增白盒视觉占位材质和 Editor 修复工具
+
+---
+
+Chosen Option: Option B
+
+Reason: 审计发现主要问题不是单点脚本 bug，而是脚本、场景绑定、ArtRoot 视觉和 Play Mode 验证之间的断链。最小 fallback 视觉符合 Phase6 白盒阶段目标，可在后续替换为正式 2D 国风素材。
+
+Impact:
+- MovementController 增加 EnsureOnNavMesh，PlayerCharacter.Start 自动归位到 NavMesh
+- Camera_2D_Oblique 修正到地图中心视角，CameraFollow2D 使用斜俯视 offset
+- InputManager 使用相机射线 + Y=0 平面 fallback，并过滤障碍/围墙点击
+- TestUIRouter 初始化 TestUIPanel router，修复 UI 打开后关闭按钮无效
+- WorkstationVisualController 在无 defaultVisualPrefab 时创建 Visual_Fallback
+- AreaType 增加 None=-1，AreaManager 离开区域后不再误报 Order
+- 新增 Phase6AuditRepair Editor 工具，用于补齐场景 ArtRoot、PlayerCharacterConfig、工作台视觉和材质
+- 验证结果：Game View 可见地图，Play Mode `NavMeshAgent.isOnNavMesh=True`，`_MapRoot/ArtRoot` 10 个 Renderer enabled，6/6 Workstation ArtRoot 非空，Console Error=0
+
+---
+
+# Decision
+
+Decision ID: D056
+
+Date: 2026-06-09
+
+Context: P6-07 / T02 Movement Test — `NavMeshAgent.SetDestination` 后 Transform 不移动
+
+Options:
+
+Option A: 继续依赖 `NavMeshAgent.updatePosition=true`
+Pros: Unity 默认路径，代码最少
+Cons: 当前 Unity 2022.3 + Navigation 包卸载/恢复旧版 NavMesh 后，Agent 可 Warp/算路但自动移动驱动异常，velocity 过低且 Transform 不推进
+
+Option B: `NavMeshAgent` 只负责路径计算，`MovementController` 手动推进 Transform
+Pros: 保留 NavMesh 路径计算，同时绕过 Agent 自动移动异常；改动集中在 MovementController
+Cons: 需要维护手动 path corners 推进逻辑
+
+---
+
+Chosen Option: Option B
+
+Reason: T02 已确认 SetDestination 不生效的残留点在 Agent 自动移动驱动，而不是 NavMesh 采样或路径计算。手动移动模式能保留现有 NavMeshAgent 兼容路线，并最小化 Phase6 架构变更。
+
+Impact:
+- `MovementController` 禁用 `navMeshAgent.updatePosition/updateRotation`
+- `SetDestination()` 使用 Agent 计算 `NavMeshPath`，缓存 `path.corners`
+- `Update()` 调用 `TickManualMovement(Time.deltaTime)`，按 corners 手动 `MoveTowards`
+- 每次移动同步 `navMeshAgent.nextPosition = transform.position`
+- `IsMoving()` / `HasReachedDestination()` 改为基于手动路径终点判断
+- 清理场景中卸载 `com.unity.ai.navigation` 后残留 Missing Script 1 个
+- 验证结果：Play Mode 确定性测试移动 5.00m，AgentOnNavMesh=True，PathStatus=PathComplete，Console Error=0
+
+---
+
+# Decision
+
+Decision ID: D057
+
+Date: 2026-06-09
+
+Context: P6-07 / T02 Layout Connectivity — 玩家被困在出生地块，跨区 NavMesh 为 `PathPartial`
+
+Options:
+
+Option A: 继续整体放大可走区和道路，强行让 NavMesh 区块相交
+Pros: 快速连通
+Cons: 会破坏 Phase6 白盒地图布局，视觉区域和道路比例变形
+
+Option B: 恢复地图视觉/功能区原始布局尺寸，只新增隐藏逻辑连接条参与 NavMesh 烘焙
+Pros: 保留既定地图布局；逻辑层可连通；符合 `LogicRoot / ArtRoot` 分离规则
+Cons: 需要维护一组 Connector 逻辑对象
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户明确提醒“注意布局”。Phase6 的视觉布局不能为了解决 NavMesh 岛屿而整体变形；应通过隐藏逻辑层解决寻路连通，视觉层保持任务方案口径。
+
+Impact:
+- `Phase6NavMeshConnectivityRepair` 恢复六大功能区、主路、次路、窑区支路和对应视觉对象到任务方案原始尺寸
+- 在 `WalkableRoot` 下新增 7 个 `Connector_*` 逻辑桥接块参与旧版 NavMesh 烘焙
+- 连接条使用 `Mat_Walkable_Green`，Renderer 保持 enabled 以兼容旧版 `NavMeshBuilder` 烘焙
+- 旧版 `UnityEditor.AI.NavMeshBuilder.BuildNavMesh()` 重烘焙后，出生点到主路/拉坯区/配釉区/烧窑区/材料区均为 `PathComplete`
+- `MovementController` 不再等待 `agent.pathPending`，不再调用 `agent.SetDestination()`；Agent 只通过 `CalculatePath()` 产出 corners，Transform 手动推进
+- 验证结果：Play Mode 跨区移动 28.47m，终点距目标 0.31m，Console Error=0
+
+---
+
+# Decision
+
+Decision ID: D058
+
+Date: 2026-06-09
+
+Context: Phase7 Step 0 / 工作区与文档骨架创建
+
+Options:
+
+Option A: 仅创建 Phase7 文档骨架，不提前写玩法实现
+Pros: 边界清晰，后续可以按 P7-01~P7-06 逐步推进
+Cons: 暂时没有新的运行时代码产出
+
+Option B: 同时开始写 Phase7 玩法代码
+Pros: 进度更快
+Cons: 容易越过 Step 0 边界，影响后续任务切分
+
+---
+
+Chosen Option: Option A
+
+Reason: 用户明确要求先完成第 0 步并放在对应目录；此步的正确产物应是 Phase7 工作区与基础文档，而不是提前进入玩法实现。
+Impact:
+- 新增 `Project/Task/Phase7/architecture/README.md`
+- 新增 `Project/Task/Phase7/architecture/P7-00_PHASE_OVERVIEW.md`
+- 新增 `Project/Task/Phase7/tasks/README.md`
+- 新增 `Project/Task/Phase7/tasks/task-p7-00-workspace.md`
+- `STATE.md` 增加 Phase7 Kickoff 记录
+
+---
+
+# Decision
+
+Decision ID: D059
+
+Date: 2026-06-09
+
+Context: Phase7 task cards / CodeBuddy + UnityMCP 可执行化加固
+
+Options:
+
+Option A: 保留现有简略任务卡
+Pros: 文档短，阅读快
+Cons: CodeBuddy 执行时缺少 UnityMCP 步骤、字段清单、依赖、验收动作和回滚边界
+
+Option B: 将 P7-01~P7-06 改写为 UnityMCP 可执行任务卡
+Pros: 每张任务卡都有依赖、范围、UnityMCP Steps、Acceptance 和 Rollback，适合逐条交给 CodeBuddy 执行
+Cons: 文档更长，需要后续严格按任务边界执行
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户确认需要将当前 Phase7 方案变成可执行任务包；当前任务卡战略方向正确，但粒度不足以直接驱动 UnityMCP 操作。
+Impact:
+- 重写 `Project/Task/Phase7/architecture/README.md`
+- 重写 `Project/Task/Phase7/architecture/P7-00_PHASE_OVERVIEW.md`
+- 重写 `Project/Task/Phase7/tasks/README.md`
+- 扩写 `task-p7-01-scene-binding.md` 到 `task-p7-06-validation.md`
+- 本次仅修改文档，不修改 Unity 场景和运行时代码
+
+---
+
+# Decision
+
+Decision ID: D060
+
+Date: 2026-06-09
+
+Context: Phase7 task order / Insert P7-03A Gameplay Bridge
+
+Options:
+
+Option A: Keep P7-03 UI Routing directly followed by P7-04 Gameplay Loop
+Pros: Fewer tasks, shorter plan
+Cons: Phase3 system availability problems would surface late during full loop testing
+
+Option B: Insert P7-03A Gameplay Bridge between P7-03 and P7-04
+Pros: Separates UI routing from gameplay system bridge verification; catches missing Phase3 systems, missing panel references, missing scene objects, and NullReference risks before full loop testing
+Cons: Adds one extra task before P7-04
+
+---
+
+Chosen Option: Option B
+
+Reason: User correctly identified the highest-risk integration point as Phase3 systems inside the Phase6 scene. UI routing alone does not prove OrderManager, ShapeSystem, GlazeSystem, FiringSystem, or ResultSystem are reachable from Workshop_TestScene.
+Impact:
+- Added `Project/Task/Phase7/tasks/task-p7-03a-gameplay-bridge.md`
+- Updated `Project/Task/Phase7/tasks/README.md`
+- Updated `Project/Task/Phase7/architecture/P7-00_PHASE_OVERVIEW.md`
+- Updated `task-p7-04-gameplay-loop.md` dependency to `P7-03A PASS`
+- Updated `task-p7-06-validation.md` to include gameplay bridge evidence
+
+# Decision
+
+Decision ID: D061
+
+Date: 2026-06-09
+
+Context: P7-01 Scene Binding Audit — Workshop_TestScene 关键对象引用状态
+
+Options:
+
+Option A: 发现引用断链，需要修复 Inspector 绑定
+Pros: 修复后 P7-02 可正常推进
+Cons: 有修复风险
+
+Option B: 审计通过，所有关键引用完整，无需修复
+Pros: 场景状态健康，可直接推进 P7-02
+Cons: 无
+
+---
+
+Chosen Option: Option B
+
+Reason: 对 Phase6GameManager、PlayerCharacter、InputManager、TestUIRouter、AreaManager、ScaleManager、Camera_2D_Oblique、6 个 Workstation 的全部关键字段审计后，所有 SerializeField 引用均已正确绑定，Missing Script=0，Play Mode 0 Error 0 Warning。无需任何修复。
+
+Impact:
+- P7-01 PASS，0 修复项
+- Workshop_TestScene 场景无变更
+- TestUIRouter 组件挂载在 Phase6GameManager 同一 GameObject 上，引用有效，不属于断链
+- Next Task: P7-02 State Gate
+
+# Decision
+
+Decision ID: D062
+
+Date: 2026-06-09
+
+Context: P7-02 State Gate — 状态机设计选择
+
+Options:
+
+Option A: 保留 Interacting 瞬态（Playing→Interacting→UIOpen 三态流转）
+Pros: 语义上区分"触发交互"和"UI打开"
+Cons: Interacting 为同帧瞬态，无独立生命周期，增加维护成本
+
+Option B: 删除 Interacting 业务流，Playing↔UIOpen 双态直转
+Pros: 最简实现，减少不必要状态；符合 Phase7 最小改动原则
+Cons: Interacting 枚举值保留但未启用
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户审查明确要求删除 Interacting 瞬态流。Interacting 为同帧瞬态，无独立生命周期，无业务价值。Phase7 只修 Bug，不做架构重构。
+
+Impact:
+- `Phase6GameManager.SetState()` 新增 `CanTransitionTo()` 转换守卫，仅允许 Playing↔UIOpen
+- `Working` 保留枚举定义但 `CanTransitionTo(Working)` 返回 false，阻止任何进入
+- `CharacterStateMachine.Working` 出口修复（Working→Idle 合法转换）
+- `InputManager` E 键增加 `CanInteract()` 检查
+- `TestUIRouter.CloseUI()` 增加 `StopMoving()` 清理残余路径
+- 30 次 UI 开关循环验证 PASS
+- Next Task: P7-03 UI Routing
+
+# Decision
+
+Decision ID: D063
+
+Date: 2026-06-09
+
+Context: P7-03 UI Routing — Panel 命名策略
+
+Options:
+
+Option A: 将 Panel_Wheel/Panel_Kiln 改名为 Panel_Shape/Panel_Firing，对齐 Phase3 Gameplay 域名
+Pros: 命名语义统一
+Cons: 改名导致 Scene Reference/UIMapping 变化，增加风险；属于 P7-03A 范围
+
+Option B: 保持 Panel_Wheel/Panel_Kiln 现状，P7-03 只验证 Workstation→Panel 路由
+Pros: 零风险；严格限定 P7-03 范围
+Cons: 命名与 Gameplay 域名不一致
+
+---
+
+Chosen Option: Option B
+
+Reason: 用户审查明确要求 P7-03 不改名。P7-03 目标是验证 Workstation→TestUIPanel 路由，不是 TestUIPanel→Gameplay System。改名留到 P7-03A。
+
+Impact:
+- 仅修改 `TestUIRouter.cs`：LogError升级 + null检查 + 路由调试日志
+- 6/6 Workstation→Panel 路由验证 PASS
+- Panel_Wheel/Panel_Kiln 替换/重命名留给 P7-03A
+- Next Task: P7-03A Gameplay Bridge
+
+# Decision
+
+Decision ID: D064
+
+Date: 2026-06-09
+
+Context: P7-03A Gameplay Bridge — Integration Strategy
+
+Options:
+
+Option A: Create GameplayBridge.cs as a mediator between Phase6GameManager and Phase3 GameManager
+Pros: Explicit bridge layer, centralized coordination point
+Cons: Forms three-layer control chain (Phase6GameManager→GameplayBridge→Phase3 GameManager), violating Single Source of Truth principle; introduces unnecessary indirection between two managers with completely different responsibilities
+
+Option B: Direct Phase3 GameManager reuse, no new scripts, no modifications to existing scripts
+Pros: Two managers have completely non-overlapping responsibilities (World State vs Gameplay State), no conflict exists; zero new code; minimal risk
+Cons: None identified — the two managers already coexist in Workshop_TestScene and run independently
+
+---
+
+Chosen Option: Option B
+
+Reason: Phase6GameManager owns World State (Playing/UIOpen, movement lock, interaction lock). Phase3 GameManager owns Gameplay State (Order/Shape/Glaze/Firing/Result). The two domains are completely disjoint — no state control conflict exists. Adding GameplayBridge would create a three-layer control chain violating Single Source of Truth. Both managers already run independently in Workshop_TestScene with 0 Error and 0 NullReference.
+
+Impact:
+- No new scripts created
+- No modifications to Phase3 Gameplay scripts (OrderManager, ShapeSystem, GlazeSystem, FiringSystem, ResultSystem, GameManager)
+- No modifications to Phase6 scripts (Phase6GameManager, InputManager, CharacterStateMachine, InteractionController)
+- Workshop_TestScene already contains: 6 Gameplay systems + 5 official Gameplay Panels, all running correctly
+- Responsibility boundary enforced: Phase6GameManager is sole authority for World State; Phase3 GameManager is sole authority for Gameplay State; cross-domain control prohibited
+- P7-03A COMPLETE, Next = P7-04 Gameplay Loop Integration
+
+# Decision
+
+Decision ID: D065
+
+Date: 2026-06-09
+
+Context: P7-04 Gameplay Loop Integration — Architecture principles
+
+Options:
+
+Option A: Phase3 GameManager directly calls Phase6GameManager.OnGameplayLoopComplete() when gameplay ends
+Pros: Simple, direct
+Cons: Gameplay Layer → World Layer dependency; violates "Gameplay Layer should not know World Layer" principle; creates Phase3 → Phase6 coupling
+
+Option B: UI Layer (ResultPanelController/TestUIRouter) handles gameplay completion signal; Phase3 GameManager never references Phase6
+Pros: Clean separation; Gameplay Layer completely unaware of World Layer; completion signal flows through UI (ResultPanelController → TestUIRouter.CloseUI → Phase6GameManager.SetState(Playing))
+Cons: ResultPanelController needs TestUIRouter reference
+
+---
+
+Chosen Option: Option B
+
+Reason: Four architectural issues were identified in Design V1: (1) Phase3→Phase6 direct dependency prohibited, (2) TestUIRouter should not control two panel systems, (3) Workstation should not determine GameState, (4) completion signal must go through UI layer. Design V2 addresses all four by keeping strict layer separation.
+
+Impact:
+- GameManager.cs: Added GameState.None, StartGameplayLoop(), StopGameplayLoop()
+- TestUIRouter.cs: Added gameplayManager reference; OpenUI differentiates gameplay vs non-gameplay areas; CloseUI calls StopGameplayLoop
+- ResultPanelController.cs: Added exitGameplayButton + onExitGameplay UnityEvent; OnExitGameplayClicked → onExitGameplay.Invoke() (scene binds event to TestUIRouter.CloseUI)
+- No Phase3 script references any Phase6 type (UnityEvent decouples layers)
+- TestUIRouter does not call SetActive on any Gameplay Panel
+- All gameplay state progression remains exclusive to Phase3 GameManager
+- A1-A9 acceptance checks all PASS
+- P7-04 COMPLETE (Boundary Correction applied), Next = P7-05 Area Stability
+
+# Decision
+
+Decision ID: D066
+
+Date: 2026-06-09
+
+Context: P7-04 Boundary Correction — ResultPanelController → TestUIRouter direct reference violates layer boundary
+
+Options:
+
+Option A: Keep ResultPanelController's direct TestUIRouter SerializeField reference
+Pros: Fewer moving parts; works at runtime
+Cons: Phase3 ResultPanelController imports Phase6 TestUIRouter type; violates "Phase3 should not know Phase6" principle; grep check shows Phase3 directory referencing Phase6 types
+
+Option B: Replace TestUIRouter reference with UnityEvent; scene Inspector binds event to TestUIRouter.CloseUI()
+Pros: Phase3 zero Phase6 type references; event decouples layers; scene wiring is a pure Inspector operation; consistent with Unity's component communication pattern
+Cons: Requires one Inspector binding step
+
+---
+
+Chosen Option: Option B
+
+Reason: User review identified that ResultPanelController's direct TestUIRouter reference contradicts the approved architecture principle "Phase3 零 Phase6 引用". UnityEvent is the standard Unity pattern for cross-layer communication without type coupling. The event is bound in the scene (Inspector), keeping Phase3 scripts completely unaware of Phase6.
+
+Impact:
+- ResultPanelController.cs: Removed `[SerializeField] private TestUIRouter uiRouter`; added `[SerializeField] private UnityEvent onExitGameplay`; OnExitGameplayClicked now calls `onExitGameplay.Invoke()`
+- Scene binding: onExitGameplay event → TestUIRouter.CloseUI() (set via Inspector)
+- Verification: grep Phase3 directory for "TestUIRouter" returns 0 results; Play Mode full loop still PASS
+
+# Decision
+
+Decision ID: D067
+
+Date: 2026-06-09
+
+Context: P7-05 Area Stability — AreaManager exit debounce bug + AreaTrigger FindObjectOfType per-call
+
+Options:
+
+Option A: Keep exit debounce as-is (0.3s delay before CurrentArea reverts to None)
+Pros: Prevents rapid flicker
+Cons: Bug — player physically leaves area but CurrentArea still shows old area for 0.3s; during that window interaction may target wrong workstation
+
+Option B: Remove exit debounce block; exit always executes immediately; debounce only on enter (same-trigger re-entry guard)
+Pros: CurrentArea=None immediately on exit; no stale state window; simpler code
+Cons: Potential for rapid enter/exit flicker at area boundaries (acceptable — same-trigger re-entry guard on enter prevents most cases)
+
+---
+
+Chosen Option: Option B
+
+Reason: The exit debounce was identified as a correctness bug — when player exits an area, CurrentArea must reflect None immediately. The original debounce attempted to prevent flicker but created a stale state window. The simpler approach: same-trigger re-entry guard on enter (already existed), no delay on exit. AreaTrigger also cached AreaManager reference to avoid repeated FindObjectOfType calls in physics callbacks.
+
+Impact:
+- AreaTrigger.cs: Cached AreaManager in Awake(), removed per-call FindObjectOfType
+- AreaManager.cs: Removed exit debounce (lastChangeTime/DebounceTime fields deleted); OnPlayerExitArea always sets CurrentArea=None; OnPlayerEnterArea only guards against same-trigger re-entry
+- Verified: enter→exit→re-enter cycle correct, CurrentArea=None after exit, interaction works after transitions
+- P7-05 COMPLETE, Next = P7-06 Validation
+
+# Decision
+
+Decision ID: D068
+
+Date: 2026-06-09
+
+Context: P7-06 Validation — Phase7 final validation
+
+---
+
+No new architectural decisions. All P7-01~P7-05 decisions validated in runtime.
+
+Validation results:
+- Compile: 0 error, 0 missing script
+- Play Mode: enters correctly (P3=None, P6=Playing)
+- Movement: NavMesh PathComplete, manual movement works
+- Interaction: TryInteract at OrderStation works, triggers gameplay loop
+- UI open/close: 6/6 workstation routing correct (4 Gameplay + 2 TestUI)
+- Area: 6/6 enter/exit stable, CurrentArea=None after exit
+- One loop: Order→Shape→Glaze→Firing→Result→NextOrder PASS
+- Three loops: 青釉碗→白釉碗→祭红碗 cycle PASS
+- Console: 0 error
+
+Intentionally deferred scope:
+- ScaleManager.ApplyBuildingScale() is a no-op (dead code), deferred to future phase
+- WorkstationVisualController defensive guard (LogicRoot check) not added, existing code already only operates on ArtRoot children
+
+Phase7 CLOSED.

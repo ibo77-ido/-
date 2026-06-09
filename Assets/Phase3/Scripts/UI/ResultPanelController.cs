@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
@@ -15,6 +16,10 @@ public class ResultPanelController : MonoBehaviour
     [SerializeField] private Text reputationRewardText;
     [SerializeField] private Text orderResultText;
     [SerializeField] private Button nextOrderButton;
+    [SerializeField] private Button exitGameplayButton;
+
+    [Header("Exit Gameplay Event")]
+    [SerializeField] private UnityEvent onExitGameplay = new UnityEvent();
 
     private static readonly Dictionary<string, string> GradeDisplayNames = new Dictionary<string, string>
     {
@@ -40,12 +45,16 @@ public class ResultPanelController : MonoBehaviour
     {
         if (nextOrderButton != null)
             nextOrderButton.onClick.AddListener(OnNextOrderClicked);
+        if (exitGameplayButton != null)
+            exitGameplayButton.onClick.AddListener(OnExitGameplayClicked);
     }
 
     private void OnDestroy()
     {
         if (nextOrderButton != null)
             nextOrderButton.onClick.RemoveListener(OnNextOrderClicked);
+        if (exitGameplayButton != null)
+            exitGameplayButton.onClick.RemoveListener(OnExitGameplayClicked);
     }
 
     public void ShowResult()
@@ -84,6 +93,11 @@ public class ResultPanelController : MonoBehaviour
     {
         if (gameManager != null)
             gameManager.GoToNextOrder();
+    }
+
+    private void OnExitGameplayClicked()
+    {
+        onExitGameplay.Invoke();
     }
 
     private void SetText(Text targetText, string value)
