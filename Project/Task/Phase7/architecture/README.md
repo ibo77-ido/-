@@ -3,6 +3,7 @@
 ## Index
 
 - [P7-00_PHASE_OVERVIEW.md](P7-00_PHASE_OVERVIEW.md)
+- [Phase8 Bridge Pack](../../Phase8/architecture/README.md)
 
 ## Purpose
 
