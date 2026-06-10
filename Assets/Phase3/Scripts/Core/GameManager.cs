@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public enum GameState
 {
@@ -13,6 +14,7 @@ public enum GameState
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private GameState currentState = GameState.None;
+    [SerializeField] private bool autoStartInPhase3Scene = true;
 
     [SerializeField] private GameObject panelOrder;
     [SerializeField] private GameObject panelShape;
@@ -30,20 +32,27 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GlazePanelController glazePanelController;
     [SerializeField] private FiringPanelController firingPanelController;
     [SerializeField] private ResultPanelController resultPanelController;
+    [SerializeField] private OrderPanelController orderPanelController;
 
     public GameState CurrentState => currentState;
 
+    private bool advanceOrderOnNextStart;
+
     private void Start()
     {
+        if (currentState == GameState.None && ShouldAutoStart())
+        {
+            BeginOrder(false);
+            return;
+        }
+
         UpdatePanels();
     }
 
     public void StartGameplayLoop()
     {
         Debug.Log("[GameManager] StartGameplayLoop");
-        if (orderManager != null) orderManager.GetCurrentOrder();
-        ResetAllSystems();
-        SetState(GameState.Order);
+        BeginOrder(advanceOrderOnNextStart);
     }
 
     public void StopGameplayLoop()
@@ -81,14 +90,51 @@ public class GameManager : MonoBehaviour
     public void GoToResult()
     {
         if (resultPanelController != null) resultPanelController.ShowResult();
+        advanceOrderOnNextStart = true;
         SetState(GameState.Result);
     }
 
     public void GoToNextOrder()
     {
-        if (orderManager != null) orderManager.NextOrder();
+        BeginOrder(true);
+    }
+
+    private void BeginOrder(bool advanceOrder)
+    {
+        OrderData currentOrder = null;
+
+        if (orderManager != null)
+        {
+            if (advanceOrder)
+            {
+                orderManager.NextOrder();
+            }
+            else
+            {
+                orderManager.GetCurrentOrder();
+            }
+
+            currentOrder = orderManager.CurrentOrder;
+        }
+
+        advanceOrderOnNextStart = false;
         ResetAllSystems();
+        if (orderPanelController != null)
+        {
+            orderPanelController.ShowOrder(currentOrder);
+        }
         SetState(GameState.Order);
+    }
+
+    private bool ShouldAutoStart()
+    {
+        if (!autoStartInPhase3Scene)
+        {
+            return false;
+        }
+
+        string scenePath = SceneManager.GetActiveScene().path.Replace('\\', '/');
+        return scenePath.Contains("/Phase3/");
     }
 
     private void ResetAllSystems()

@@ -16,19 +16,9 @@ public class TestUIRouter : MonoBehaviour
     [Header("References")]
     [SerializeField] private Phase6GameManager gameManager;
     [SerializeField] private PlayerCharacter playerCharacter;
-    [SerializeField] private GameManager gameplayManager;
 
     private Dictionary<AreaType, GameObject> uiMap;
     private GameObject currentOpenUI;
-    private bool isGameplayOpen;
-
-    private static readonly HashSet<AreaType> gameplayAreas = new HashSet<AreaType>
-    {
-        AreaType.Order,
-        AreaType.Wheel,
-        AreaType.Glaze,
-        AreaType.Kiln
-    };
 
     private void Awake()
     {
@@ -77,55 +67,27 @@ public class TestUIRouter : MonoBehaviour
         gameManager.SetState(Phase6GameState.UIOpen);
         playerCharacter.StopMoving();
 
-        if (gameplayAreas.Contains(areaType))
+        if (!uiMap.TryGetValue(areaType, out GameObject panel) || panel == null)
         {
-            isGameplayOpen = true;
-            if (gameplayManager != null)
-            {
-                gameplayManager.StartGameplayLoop();
-            }
-            else
-            {
-                Debug.LogError("[TestUIRouter] gameplayManager is null, cannot start gameplay loop");
-            }
-        }
-        else
-        {
-            if (!uiMap.TryGetValue(areaType, out GameObject panel) || panel == null)
-            {
-                Debug.LogError($"[TestUIRouter] No UI mapped for {areaType}");
-                return;
-            }
-
-            currentOpenUI = panel;
-            panel.SetActive(true);
+            Debug.LogError($"[TestUIRouter] No UI mapped for {areaType}");
+            gameManager.SetState(Phase6GameState.Playing);
+            return;
         }
 
-        Debug.Log($"[UIRoute] {areaType} -> {(isGameplayOpen ? "Gameplay" : uiMap[areaType]?.name)}");
+        currentOpenUI = panel;
+        panel.SetActive(true);
+
+        Debug.Log($"[UIRoute] {areaType} -> {panel.name}");
     }
 
     public void CloseUI()
     {
-        string closedName;
+        string closedName = currentOpenUI != null ? currentOpenUI.name : "none";
 
-        if (isGameplayOpen)
+        if (currentOpenUI != null)
         {
-            closedName = "Gameplay";
-            isGameplayOpen = false;
-            if (gameplayManager != null)
-            {
-                gameplayManager.StopGameplayLoop();
-            }
-        }
-        else
-        {
-            closedName = currentOpenUI != null ? currentOpenUI.name : "none";
-
-            if (currentOpenUI != null)
-            {
-                currentOpenUI.SetActive(false);
-                currentOpenUI = null;
-            }
+            currentOpenUI.SetActive(false);
+            currentOpenUI = null;
         }
 
         if (playerCharacter != null)

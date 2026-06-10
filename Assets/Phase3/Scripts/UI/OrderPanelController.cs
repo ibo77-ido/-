@@ -33,15 +33,9 @@ public class OrderPanelController : MonoBehaviour
         Refresh();
     }
 
-    public void Refresh()
+    public void ShowOrder(OrderData order)
     {
-        if (orderManager == null)
-        {
-            return;
-        }
-
-        OrderData currentOrder = orderManager.GetCurrentOrder();
-        if (currentOrder == null)
+        if (order == null)
         {
             SetText(orderNameText, "订单：未选择");
             SetText(targetShapeText, "目标器型：-");
@@ -50,10 +44,20 @@ public class OrderPanelController : MonoBehaviour
             return;
         }
 
-        SetText(orderNameText, "订单：" + currentOrder.orderName);
-        SetText(targetShapeText, "目标器型：" + currentOrder.requiredShapeID);
-        SetText(rewardSilverText, "银两奖励：" + currentOrder.baseGold);
-        SetText(rewardReputationText, "声望奖励：" + currentOrder.baseReputation);
+        SetText(orderNameText, "订单：" + order.orderName);
+        SetText(targetShapeText, "目标器型：" + order.requiredShapeID);
+        SetText(rewardSilverText, "银两奖励：" + order.baseGold);
+        SetText(rewardReputationText, "声望奖励：" + order.baseReputation);
+    }
+
+    public void Refresh()
+    {
+        if (orderManager == null)
+        {
+            return;
+        }
+
+        ShowOrder(orderManager.GetCurrentOrder());
     }
 
     private void SetText(Text targetText, string value)
