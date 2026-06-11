@@ -1758,4 +1758,60 @@ Intentionally deferred scope:
 - ScaleManager.ApplyBuildingScale() is a no-op (dead code), deferred to future phase
 - WorkstationVisualController defensive guard (LogicRoot check) not added, existing code already only operates on ArtRoot children
 
+---
+
+# Decision
+
+Decision ID: D058
+
+Date: 2026-06-11
+
+Context: P8-18 Scene Integration — how to unify Phase6 (Workshop_TestScene) and Phase3 (Phase3_Prototype) for runtime bridge validation
+
+Options:
+
+Option A: Single merged scene — combine all Phase3 + Phase6 content into one scene file
+Pros: Simple Inspector binding; all references visible at edit time; no async loading complexity
+Cons: Breaks Phase3 standalone testing; massive scene file; cross-phase edit conflicts; violates separation-of-concerns
+
+Option B: Additive scene loading — Phase6 as base scene, Phase3 loaded via SceneManager.LoadSceneAsync at runtime
+Pros: Preserves Phase3 standalone testing; clean separation; Bridge discovers Phase3 refs after load; matches runtime reality
+Cons: Phase3 refs not bindable in Inspector; requires runtime reference discovery; must handle async timing; Phase3 scene must be in Build Settings
+
+---
+
+Chosen Option: Option B
+
+Reason: User chose Option B explicitly. Preserves Phase3 independence, matches Contract §2 dependency direction (Phase6→Bridge→Phase3, never reverse), and additive loading is the production architecture for a 2.5D world + gameplay module system.
+
+Impact: GameplayBridgeManager.phase3GameManager and resultPanelController changed from SerializeField to runtime-discovered fields; added phase3SceneName config; added OnPhase3SceneLoaded callback with Bind/Reparent/Inject sequence; GameplayCanvasGroup panel refs bound via reflection at runtime; Phase3_Prototype must be in Build Settings for LoadSceneAsync.
+
+---
+
+# Decision
+
+Decision ID: D059
+
+Date: 2026-06-11
+
+Context: P8-18 — Phase3 Canvas reparenting strategy under GameplayCanvasRoot
+
+Options:
+
+Option A: Reparent Phase3 Canvas as child of GameplayCanvasRoot at runtime (SetParent with worldPositionStays=false)
+Pros: RuntimeHost.ShowGameplayUI()/HideGameplayUI() controls entire UI layer via single root SetActive; matches P8-06 Scene Host Structure contract
+Cons: Runtime reparenting changes scene hierarchy; Canvas settings (sorting order, render mode) may need adjustment after reparent
+
+Option B: Don't reparent — leave Phase3 Canvas as root object in additive scene, control visibility separately
+Pros: No hierarchy mutation; simpler
+Cons: Two separate Canvas roots; RuntimeHost can't control Phase3 visibility via single root; violates P8-06 contract
+
+---
+
+Chosen Option: Option A
+
+Reason: P8-06 Contract §6 requires Bridge to control Gameplay UI visibility via RuntimeHost. Single-root SetActive is the simplest, most reliable way. Canvas sorting order and render mode are preserved via SetParent(false).
+
+Impact: ReparentPhase3Canvas() method in GameplayBridgeManager moves Phase3's Canvas GameObject under GameplayCanvasRoot at runtime after additive load completes.
+
 Phase7 CLOSED.

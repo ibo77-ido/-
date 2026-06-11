@@ -16,23 +16,23 @@ public class Workstation : MonoBehaviour, IInteractable
     public InteractionPoint InteractionPoint => interactionPoint;
     public WorkstationVisualController VisualController => visualController;
 
-    private TestUIRouter uiRouter;
+    private IInteractionEntryHandler handler;
 
-    public void Initialize(TestUIRouter router)
+    public void Initialize(IInteractionEntryHandler entryHandler)
     {
-        uiRouter = router;
+        handler = entryHandler;
         if (interactionPoint != null)
         {
-            interactionPoint.Initialize(router);
+            interactionPoint.Initialize(entryHandler);
         }
     }
 
     public void Interact(ICharacter actor)
     {
         Debug.Log($"[Workstation] Interact: {config?.stationName ?? name} ({AreaType})");
-        if (uiRouter != null)
+        if (handler != null)
         {
-            uiRouter.OpenUI(AreaType);
+            handler.OnWorkstationInteracted(AreaType);
         }
     }
 

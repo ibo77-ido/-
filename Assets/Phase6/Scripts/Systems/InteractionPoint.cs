@@ -9,16 +9,16 @@ public class InteractionPoint : MonoBehaviour
     public AreaType AreaType => areaType;
     public float InteractionDistance => interactionDistance;
 
-    private TestUIRouter uiRouter;
+    private IInteractionEntryHandler handler;
 
-    public void Initialize(TestUIRouter router)
+    public void Initialize(IInteractionEntryHandler entryHandler)
     {
-        uiRouter = router;
+        handler = entryHandler;
     }
 
-    public TestUIRouter GetUIRouter()
+    public IInteractionEntryHandler GetHandler()
     {
-        return uiRouter;
+        return handler;
     }
 
     private void OnDrawGizmosSelected()

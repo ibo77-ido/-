@@ -2124,6 +2124,10 @@ MonoBehaviour:
   reputationRewardText: {fileID: 1569227955}
   orderResultText: {fileID: 49345645}
   nextOrderButton: {fileID: 1914227099}
+  exitGameplayButton: {fileID: 0}
+  onExitGameplay:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &493953533
 GameObject:
   m_ObjectHideFlags: 0
@@ -7033,6 +7037,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentState: 0
+  autoStartInPhase3Scene: 1
   panelOrder: {fileID: 247759910}
   panelShape: {fileID: 510745971}
   panelGlaze: {fileID: 792964655}
@@ -7047,6 +7052,7 @@ MonoBehaviour:
   glazePanelController: {fileID: 792964659}
   firingPanelController: {fileID: 583793586}
   resultPanelController: {fileID: 492243609}
+  orderPanelController: {fileID: 0}
 --- !u!4 &1436505097
 Transform:
   m_ObjectHideFlags: 0
@@ -7459,6 +7465,7 @@ GameObject:
   - component: {fileID: 1589948072}
   - component: {fileID: 1589948071}
   - component: {fileID: 1589948070}
+  - component: {fileID: 1589948073}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -7516,6 +7523,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1589948073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1589948069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad41eb07c9aee14449ca3633386ace9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1597421464
 GameObject:
   m_ObjectHideFlags: 0

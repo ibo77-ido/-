@@ -41,9 +41,61 @@ Design Approved 后：
 
 1. Files Created
 2. Files Modified
-3. Acceptance Check
-4. Risks
-5. Next Recommended Task
+3. Serialized References Changed
+4. Scene Mutation Declaration
+5. Acceptance Check
+6. Risks
+7. Next Recommended Task
+
+---
+
+### Rule A — Runtime Reference Audit
+
+`Serialized References Changed` 必须明确列出：
+
+- 新增了哪些 SerializeField
+- 哪些 Inspector 需要重新拖引用
+- 哪些 Button.onClick 变化
+- 哪些 Prefab 引用变化
+
+无变更时输出：
+
+```
+Serialized References Changed: NONE
+```
+
+有变更时输出：
+
+```
+Serialized References Changed:
+- [NEW SerializeField] BridgeCanvas on BridgeManager
+- [INSPECTOR REBIND] BridgeManager.phase3Panel → drag BridgeCanvas
+- [onClick CHANGED] ExitButton.onClick → BridgeManager.OnExit
+- [PREFAB REF] ResultPanel.prefab added BridgeResultAdapter
+```
+
+---
+
+### Rule B — Scene Mutation Declaration
+
+`Scene Mutation Declaration` 必须明确声明是否修改了 Scene 文件。
+
+Unity 场景改动不可见、难 diff、最容易污染 Git，必须显式化。
+
+无场景修改时输出：
+
+```
+Scene Mutation: NONE
+```
+
+有场景修改时输出：
+
+```
+Scene Mutation:
+- Added _BridgeRoot
+- Added BridgeCanvas under _BridgeRoot
+- Moved Phase3UICanvas under _BridgeRoot
+```
 
 
 ---

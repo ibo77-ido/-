@@ -38,6 +38,44 @@ public class GameManager : MonoBehaviour
 
     private bool advanceOrderOnNextStart;
 
+    /// <summary>
+    /// Queries Bridge Runtime Authority for auto-advance permission.
+    /// Returns true when either:
+    /// - No bridge is present (standalone Phase3 mode), or
+    /// - Bridge confirms automatic gameplay progression is allowed.
+    /// GameManager does NOT hold permission state — only queries it.
+    /// </summary>
+    private bool CanProgress()
+    {
+        if (progressionAuthority != null)
+        {
+            return progressionAuthority.CanAutoAdvanceGameplay();
+        }
+
+        // No authority bound — standalone Phase3, always allow
+        return true;
+    }
+
+    private void CompleteModuleForBridge(GameState completedState)
+    {
+        if (progressionAuthority != null)
+        {
+            progressionAuthority.NotifyGameplayModuleCompleted(completedState);
+        }
+    }
+
+    /// <summary>
+    /// Binds the progression authority at runtime.
+    /// Called by GameplayBridgeManager during setup.
+    /// GameManager never references Bridge types directly.
+    /// </summary>
+    public void SetProgressionAuthority(IGameplayProgressionAuthority authority)
+    {
+        progressionAuthority = authority;
+    }
+
+    private IGameplayProgressionAuthority progressionAuthority;
+
     private void Start()
     {
         if (currentState == GameState.None && ShouldAutoStart())
@@ -55,9 +93,42 @@ public class GameManager : MonoBehaviour
         BeginOrder(advanceOrderOnNextStart);
     }
 
+    public void EnterOrderModule()
+    {
+        Debug.Log("[GameManager] EnterOrderModule");
+        BeginOrder(false);
+    }
+
+    public void EnterShapeModule()
+    {
+        Debug.Log("[GameManager] EnterShapeModule");
+        if (orderManager != null) orderManager.GetCurrentOrder();
+        if (shapeSystem != null) shapeSystem.LoadTargetFromCurrentOrder();
+        if (shapePanelController != null) shapePanelController.ResetPanel();
+        SetState(GameState.Shape);
+    }
+
+    public void EnterGlazeModule()
+    {
+        Debug.Log("[GameManager] EnterGlazeModule");
+        if (glazeSystem != null) glazeSystem.LoadTargetFromCurrentOrder();
+        if (glazePanelController != null) glazePanelController.ResetPanel();
+        SetState(GameState.Glaze);
+    }
+
+    public void EnterFiringModule()
+    {
+        Debug.Log("[GameManager] EnterFiringModule");
+        if (firingSystem != null) firingSystem.StartFiring();
+        if (firingPanelController != null) firingPanelController.ResetPanel();
+        SetState(GameState.Firing);
+    }
+
     public void StopGameplayLoop()
     {
         Debug.Log("[GameManager] StopGameplayLoop");
+        advanceOrderOnNextStart = false;
+        firingSystem.StopFiring();
         SetState(GameState.None);
     }
 
@@ -70,6 +141,12 @@ public class GameManager : MonoBehaviour
 
     public void GoToShape()
     {
+        if (!CanProgress())
+        {
+            CompleteModuleForBridge(GameState.Order);
+            return;
+        }
+
         if (orderManager != null) orderManager.GetCurrentOrder();
         if (shapeSystem != null) shapeSystem.LoadTargetFromCurrentOrder();
         SetState(GameState.Shape);
@@ -77,12 +154,24 @@ public class GameManager : MonoBehaviour
 
     public void GoToGlaze()
     {
+        if (!CanProgress())
+        {
+            CompleteModuleForBridge(GameState.Shape);
+            return;
+        }
+
         if (glazeSystem != null) glazeSystem.LoadTargetFromCurrentOrder();
         SetState(GameState.Glaze);
     }
 
     public void GoToFiring()
     {
+        if (!CanProgress())
+        {
+            CompleteModuleForBridge(GameState.Glaze);
+            return;
+        }
+
         if (firingSystem != null) firingSystem.StartFiring();
         SetState(GameState.Firing);
     }
@@ -96,6 +185,12 @@ public class GameManager : MonoBehaviour
 
     public void GoToNextOrder()
     {
+        if (!CanProgress())
+        {
+            CompleteModuleForBridge(GameState.Result);
+            return;
+        }
+
         BeginOrder(true);
     }
 

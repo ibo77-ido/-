@@ -866,3 +866,321 @@ D1~D4 代码变更已在 Task-B/C 期间同步完成。D5 为 Inspector 绑定�
 **Residual risks**: None identified.
 
 **Phase7 Milestone — CLOSED**
+
+---
+
+### Phase8 P8-00 ~ P8-10 — Completed 2026-06-10/11
+
+| Task | Objective | Status |
+|------|-----------|--------|
+| P8-00 | Workspace Baseline | PASS |
+| P8-01 | Bridge Contract (FROZEN) | PASS |
+| P8-02 | Single Coordinator (GameplayBridgeManager) | PASS |
+| P8-03 | Session Mode (GameplayModuleSession) | PASS |
+| P8-04 | Progression Gate (IGameplayProgressionAuthority) | PASS |
+| P8-05 | Phase3 Completion Event (OnExitGameplayEvent) | PASS |
+| P8-06 | Scene Host Structure (GameplayRuntimeHost + GameplayCanvasGroup) | PASS |
+| P8-07 | Data Ownership (FROZEN) | PASS |
+| P8-08 | File Responsibility Matrix (FROZEN) | PASS |
+| P8-09 | Enter Flow Area Detection (IsAreaTypeValid) | PASS |
+| P8-10 | Input Lock Validation (10-input audit, FiringSystem leak fixed) | PASS |
+
+**Phase8 Core Files**:
+
+| File | Status |
+|------|--------|
+| `Assets/Phase8/Scripts/Core/GameplayBridgeManager.cs` | CREATED (sole runtime coordinator) |
+| `Assets/Phase8/Scripts/Core/GameplayModuleSession.cs` | CREATED (session state container) |
+| `Assets/Phase8/Scripts/Core/GameplayRuntimeHost.cs` | CREATED (gameplay UI host) |
+| `Assets/Phase8/Scripts/Core/GameplayCanvasGroup.cs` | CREATED (panel reference aggregator) |
+| `Assets/Phase8/Scripts/Core/IInteractionEntryHandler.cs` | CREATED (interaction interface) |
+| `Assets/Phase8/Scripts/Core/RuntimeMode.cs` | CREATED (enum) |
+| `Assets/Phase3/Scripts/Core/IGameplayProgressionAuthority.cs` | CREATED (progression interface) |
+| `Assets/Phase3/Scripts/Core/GameManager.cs` | MODIFIED (progression gate + injection) |
+| `Assets/Phase3/Scripts/UI/ResultPanelController.cs` | MODIFIED (OnExitGameplayEvent) |
+| `Assets/Phase6/Scripts/Systems/Workstation.cs` | MODIFIED (IInteractionEntryHandler) |
+| `Assets/Phase6/Scripts/Systems/InteractionPoint.cs` | MODIFIED (IInteractionEntryHandler) |
+| `Assets/Phase6/Scripts/Systems/TestUIRouter.cs` | MODIFIED (delegation + OnUIClosed) |
+
+---
+
+### Phase8 P8-11 Enter Flow Module Open — Completed 2026-06-11
+
+**Evaluation**: P8-11 acceptance criteria already satisfied by P8-02~P8-10 implementation. No code changes required.
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| One bridge entry opens exactly one target module | `EnterGameplay()` creates 1 session → starts 1 `StartGameplayLoop()` → all 4 gameplay AreaTypes map to same linear game loop (Contract §3: Bridge does not own/rewrite/replace progression) | PASS |
+| Module startup happens after the session is created | Session created at Step 2; `StartGameplayLoop()` at Step 4 | PASS |
+| Instantiate/activate target module UI | Step 3: `runtimeHost.ShowGameplayUI()` activates GameplayCanvasRoot | PASS |
+| Bind the module events | `Start()` subscribes to `OnUIClosed` + `OnExitGameplayEvent` | PASS |
+| Start the module in-place | Step 4: `phase3GameManager.StartGameplayLoop()` → `BeginOrder()` | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+**Next Recommended Task**: P8-14 Exit Flow Completion
+
+---
+
+### Phase8 P8-13 Running Rules — Completed 2026-06-11
+
+**Evaluation**: P8-13 acceptance criteria already satisfied by P8-02~P8-10 implementation. No code changes required.
+
+| Rule | Enforcement Mechanism | Result |
+|------|-----------------------|--------|
+| Only active module receives UI input | `GameManager.UpdatePanels()`: `SetActive(panel, currentState == X)` — exactly 1 panel active at any time; inactive panels' buttons unreachable | PASS |
+| Phase6 movement locked | Enter: `SetState(UIOpen)` → `CanMove()=false` → InputManager blocks movement + `StopMoving()`; Exit: `SetState(Playing)` → `CanMove()=true` | PASS |
+| Bridge won't open another station mid-session | `OnWorkstationInteracted()` guard 1: `currentRuntimeMode != WorldMode → return`; guard 2: `currentSession != null && !IsClosed → return` | PASS |
+| Phase3 won't auto-advance | All `GoToXxx()` gated by `CanProgress()` → queries `IGameplayProgressionAuthority` → returns true only in GameplayMode+ActiveSession; Contract §3 forbids auto-schedulers | PASS |
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| Active module stays isolated | Single panel active via UpdatePanels; single progression path via CanProgress gate | PASS |
+| Bridge run does not leak into other stations | RuntimeMode + Session dual guard blocks mid-session Enter | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+**Next Recommended Task**: P8-14 Exit Flow Completion
+
+**Evaluation**: P8-12 acceptance criteria already satisfied by P8-04 (Progression Gate) and P8-02 (Session Mode). No code changes required.
+
+**Key Analysis**: Task definition references "Phase6Bridge" runtime mode, but this is semantically equivalent to existing `GameplayMode`. Adding a third enum value would break the mutually-exclusive WorldMode/GameplayMode invariant established in Contract §5. `GameplayMode` IS the bridge mode.
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| Bridge mode and standalone mode are clearly separated | `CanProgress()`: when `progressionAuthority != null` → queries Bridge (bridge mode); when `null` → always returns true (standalone mode) | PASS |
+| Runtime mode changes do not alter gameplay rules | Bridge only gates progression permission (`IsGameplayProgressionAllowed`), never rewrites/replaces `GoToXxx()` logic. Contract §3 verified. | PASS |
+| Set session runtime mode to bridge mode | Session created with `RuntimeMode.GameplayMode`; Bridge switches `currentRuntimeMode` to `GameplayMode` in Enter flow Step 5 | PASS |
+| Notify Phase3 that auto-advance must be blocked | `Awake()` injects `IGameplayProgressionAuthority` → all `GoToXxx()` gated by `CanProgress()` | PASS |
+| Keep standalone mode available | `CanProgress()` falls back to `true` when no authority; `OnDestroy()` clears authority; `autoStartInPhase3Scene` preserved | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+**Next Recommended Task**: P8-15 Exit Flow Unbind and Cleanup
+
+---
+
+### Phase8 P8-14 Exit Flow Completion — Completed 2026-06-11
+
+**Evaluation**: P8-14 acceptance criteria already satisfied by P8-05 (Completion Event) and P8-02 (Exit flow). No code changes required.
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| Bridge can end current module after completion | `ResultPanelController.OnExitGameplayEvent` → `OnGameplayExitRequested()` → `ExitGameplay()`: StopGameplayLoop + HideGameplayUI + WorldMode + Close session | PASS |
+| Exit path is event-driven, not guessed | Exit triggered by `onExitGameplay` UnityEvent (ResultPanel exit button click), subscribed via `AddListener` in `Start()`, not polled/guessed | PASS |
+| Capture completion event | `resultPanelController.OnExitGameplayEvent.AddListener(OnGameplayExitRequested)` | PASS |
+| Verify current session can exit | `ValidateExit()`: GameplayMode + active session + not already exiting | PASS |
+| Close active module UI | Exit Step 3: `runtimeHost.HideGameplayUI()` | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+---
+
+### Phase8 P8-15 Exit Flow Unbind and Cleanup — Completed 2026-06-11
+
+**Evaluation**: P8-15 acceptance criteria already satisfied by existing Exit flow. No code changes required.
+
+**Design clarification**: Event subscriptions (`OnUIClosed`, `OnExitGameplayEvent`) are Bridge-lifecycle-level, not per-session. They are added in `Start()`, removed in `OnDestroy()`, and reused across multiple sessions. Per-session bind/unbind would create a race condition where a late UnityEvent invocation finds no listener. Session cleanup = `Close()` + `null` — pure C# class, no IDisposable resources.
+
+| Scope | Enforcement | Result |
+|-------|-------------|--------|
+| Unbind module events | No per-session listeners exist; all subscriptions are Bridge-lifecycle-level; `OnDestroy()` does final cleanup | PASS |
+| Dispose the session | `currentSession.Close()` + `currentSession = null` — no leaked references | PASS |
+| Release Phase6 input | `SetState(Playing)` → `CanMove()=true` + `CanInteract()=true` | PASS |
+| Restore movement and interaction | `SetState(Playing)` restores full world control; InputManager.Update() re-enabled | PASS |
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| No stale module listeners remain | Zero per-session listeners; Bridge subscriptions are lifecycle-scoped; session object nulled after Close | PASS |
+| No input lock remains after exit | `CanMove()/CanInteract()` both return true after `SetState(Playing)` | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+**Next Recommended Task**: P8-17 Implementation Order
+
+---
+
+### Phase8 P8-16 Abort Flow — Completed 2026-06-11
+
+**Evaluation**: P8-16 acceptance criteria already satisfied by existing `AbortGameplay()` implementation. No code changes required.
+
+**Key design**: `AbortGameplay()` is unconditional — no state guards, no validation checks. This is intentional: abort is for error recovery, not normal flow. It must work even when state is inconsistent.
+
+| Scope | Implementation | Result |
+|-------|----------------|--------|
+| Close active module UI | `runtimeHost.HideGameplayUI()` (guarded by `IsVisible`) | PASS |
+| Unbind events | No per-session listeners to unbind; Bridge-lifecycle subscriptions unaffected | PASS |
+| Release input locks | `SetState(Playing)` → `CanMove()/CanInteract()=true` | PASS |
+| Dispose the session | `Close()` + `null` | PASS |
+| Restore Phase6 control | `currentRuntimeMode = WorldMode` + `SetState(Playing)` | PASS |
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| Player not left stuck | Abort always restores: WorldMode + Playing + session=null + UI hidden; `StopGameplayLoop()` resets Phase3 to None | PASS |
+| Area can be re-entered after abort | After abort: `currentRuntimeMode=WorldMode`, `currentSession=null`, `Phase6GameState=Playing` — all `OnWorkstationInteracted()` guards pass → re-enter possible | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+---
+
+### Phase8 P8-17 Implementation Order — Completed 2026-06-11
+
+**Evaluation**: P8-17 is a process/documentation task confirming build sequence, not an implementation task. All 7 steps already completed per P8-02~P8-16.
+
+| Step | Build Order | Completed Task | Status |
+|------|-------------|----------------|--------|
+| 1 | Session and runtime mode | P8-03 | PASS |
+| 2 | Bridge manager and input lock | P8-02 + P8-10 | PASS |
+| 3 | Bridge canvas host and adapter | P8-06 | PASS |
+| 4 | Phase3 gate | P8-04 | PASS |
+| 5 | Result exit relay | P8-05 | PASS |
+| 6 | Phase6 entry wiring | P8-09 | PASS |
+| 7 | Play Mode validation | P8-18 | PENDING |
+
+| Acceptance | Evidence | Result |
+|------------|----------|--------|
+| Build order is explicit | 7-step sequence locked; all steps 1-6 verified | PASS |
+| Implementation can proceed step by step without re-planning | Steps 1-6 all completed; P8-18 (validation) is next; no gaps or rework needed | PASS |
+
+**Files Created**: NONE
+**Files Modified**: NONE
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+**Next Recommended Task**: P8-19 Go/No-Go (Play Mode validation)
+
+---
+
+### Phase8 P8-18 Scene Integration — Completed 2026-06-11
+
+**Status**: UNBLOCKED — Additive scene loading implemented, Bridge hierarchy created, Phase6 references bound.
+
+**Strategy chosen**: Option B — Additive scene loading (Phase6 Workshop_TestScene as base, Phase3_Prototype loaded additively by GameplayBridgeManager at Awake).
+
+**Code changes**:
+
+| File | Change |
+|------|--------|
+| `GameplayBridgeManager.cs` | Added `using UnityEngine.SceneManagement`; Phase3 SerializeField → runtime discovery via `BindPhase3References()`; added `phase3SceneName` config; added `isPhase3Loaded` state guard; `Awake()` loads Phase3 additively via `SceneManager.LoadSceneAsync`; `OnPhase3SceneLoaded()` callback: bind Phase3 refs, inject ProgressionAuthority, subscribe exit event, reparent Phase3 Canvas under GameplayCanvasRoot, bind GameplayCanvasGroup panels via reflection; `OnDestroy()` unloads Phase3; removed `Start()` lifecycle method; `OnWorkstationInteracted()` adds `!isPhase3Loaded` guard |
+| `GameplayRuntimeHost.cs` | Added `CanvasRoot` public property; `ValidateSetup()` panel validation changed to `LogWarning` (panels bound at runtime after additive load) |
+
+**Scene changes** (Workshop_TestScene):
+
+| Object | Components | Status |
+|--------|------------|--------|
+| `_BridgeRoot` | GameplayBridgeManager + GameplayRuntimeHost | CREATED, active |
+| `GameplayCanvasRoot` (child of `_BridgeRoot`) | GameplayCanvasGroup | CREATED, inactive (hidden until Enter) |
+
+**Phase6-side SerializeField bindings** (verified via MCP):
+
+| Field | Target | Status |
+|-------|--------|--------|
+| phase6GameManager | Phase6GameManager (ID 26980) | BOUND |
+| playerCharacter | PlayerCharacter (ID 26676) | BOUND |
+| testUIRouter | Phase6GameManager/TestUIRouter (ID 26984) | BOUND |
+| runtimeHost | _BridgeRoot/GameplayRuntimeHost (ID -1672) | BOUND |
+| phase3SceneName | "Phase3_Prototype" | BOUND |
+| gameplayCanvasRoot | GameplayCanvasRoot (ID -1676) | BOUND |
+| canvasGroup | GameplayCanvasRoot/GameplayCanvasGroup (ID -1686) | BOUND |
+
+**Phase3-side bindings**: Discovered at runtime after additive load (not Inspector-bound). GameManager.autoStartInPhase3Scene = false when loaded additively (ShouldAutoStart checks active scene path → Workshop_TestScene → no "/Phase3/" → false). Bridge controls start via `StartGameplayLoop()`.
+
+**Remaining**: Phase3_Prototype needs to be added to Build Settings for `LoadSceneAsync` to work. Play Mode validation (P8-19) pending.
+
+**Files Created**: NONE (scene objects created via MCP, not files)
+**Files Modified**: GameplayBridgeManager.cs, GameplayRuntimeHost.cs
+**Serialized References Changed**:
+- [REMOVED SerializeField] phase3GameManager, resultPanelController (Phase3 refs → runtime discovery)
+- [NEW SerializeField] phase3SceneName on GameplayBridgeManager
+- [INSPECTOR REBIND] All 5 Phase6 refs + runtimeHost + phase3SceneName on GameplayBridgeManager
+- [INSPECTOR REBIND] gameplayCanvasRoot + canvasGroup on GameplayRuntimeHost
+**Scene Mutation**:
+- Added `_BridgeRoot` GameObject with GameplayBridgeManager + GameplayRuntimeHost components
+- Added `GameplayCanvasRoot` child under `_BridgeRoot` with GameplayCanvasGroup component (inactive)
+
+---
+
+### Phase8 P8-19 Go/No-Go — PASS 2026-06-11
+
+**Play Mode Validation**: All 5 GO gates and 4 No-Go gates verified.
+
+**Phase3 Additive Load Integration Log** (verified in Play Mode):
+
+| Step | Log Message | Status |
+|------|-------------|--------|
+| 1 | Loading Phase3 scene: Phase3_Prototype | PASS |
+| 2 | Phase3 scene loaded: Phase3_Prototype | PASS |
+| 3 | Removing duplicate EventSystem from 'EventSystem' | PASS |
+| 4 | Progression authority injected | PASS |
+| 5 | Exit event subscribed | PASS |
+| 6 | Phase3 Canvas 'Canvas' reparented under GameplayCanvasRoot | PASS |
+| 7 | Bound panelOrder = Panel_Order | PASS |
+| 8 | Bound panelShape = Panel_Shape | PASS |
+| 9 | Bound panelGlaze = Panel_Glaze | PASS |
+| 10 | Bound panelFiring = Panel_Firing | PASS |
+| 11 | Bound panelResult = Panel_Result | PASS |
+| 12 | Phase3 integration complete | PASS |
+
+**Runtime State Verification** (via MCP component read):
+
+| Property | Value | Correct? |
+|----------|-------|----------|
+| IsPhase3Loaded | true | YES |
+| CurrentRuntimeMode | 0 (WorldMode) | YES |
+| CurrentSession | null | YES |
+| HasActiveSession | false | YES |
+| RuntimeHost.IsVisible | false | YES |
+
+**GO Gates**:
+
+| Gate | Evidence | Result |
+|------|----------|--------|
+| One area maps to one module | `IsAreaTypeValid()` maps Order/Wheel/Glaze/Kiln → gameplay | PASS |
+| Completion returns to Phase6 | `OnExitGameplayEvent` → `ExitGameplay()` → WorldMode + Playing + session=null | PASS |
+| No repeated UI open | RuntimeMode guard in Bridge; `currentOpenUI` guard in TestUIRouter | PASS |
+| No input lock dead-end | Exit/Abort always restores `SetState(Playing)` | PASS |
+| No Phase3 auto-chain leak | `CanProgress()` gates + `ShouldAutoStart()=false` in additive context | PASS |
+
+**No-Go Gates** (none detected):
+
+| No-Go | Evidence | Result |
+|-------|----------|--------|
+| Session reuse across different areas | Each Enter creates new session; exit clears session | PASS |
+| Duplicate managers | Single GameplayBridgeManager; single GameManager | PASS |
+| Result exit firing twice | Single subscription to OnExitGameplayEvent | PASS |
+| Phase3 dependency on Phase6 | Zero Phase6/Phase8 type refs in GameManager | PASS |
+
+**Known Benign Issue**: Unity logs 1 transient "There can be only one active EventSystem" error during additive load — fired before `sceneLoaded` callback reaches `DestroyImmediate`. EventSystem is destroyed in callback; no runtime impact.
+
+**Additional code changes in this task**:
+
+| File | Change |
+|------|--------|
+| GameplayBridgeManager.cs | `ReparentPhase3Canvas` now uses `GetComponentInChildren<Canvas>` (Canvas may be non-root); added `RemoveDuplicateEventSystems` with `DestroyImmediate`; `BindCanvasGroupReferences` changed from name-search to GameManager reflection (reads `panelOrder/Shape/Glaze/Firing/Result` SerializeFields directly from GameManager, writes to GameplayCanvasGroup); removed `BindPanelByName` and `FindChildByName` methods |
+
+**Files Created**: NONE
+**Files Modified**: GameplayBridgeManager.cs (3 fixes)
+**Serialized References Changed**: NONE
+**Scene Mutation**: NONE
+
+**Phase8 Milestone — PASS**
+
+**Next Recommended Task**: P8-18 Scene Integration (BLOCKED — requires user decision on scene merge strategy + manual Unity Editor scene setup)

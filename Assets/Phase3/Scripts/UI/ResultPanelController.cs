@@ -21,6 +21,13 @@ public class ResultPanelController : MonoBehaviour
     [Header("Exit Gameplay Event")]
     [SerializeField] private UnityEvent onExitGameplay = new UnityEvent();
 
+    /// <summary>
+    /// Read-only access to the exit gameplay event.
+    /// GameplayBridgeManager subscribes to this at runtime.
+    /// Phase3 never knows about Bridge — only exposes the event.
+    /// </summary>
+    public UnityEvent OnExitGameplayEvent => onExitGameplay;
+
     private static readonly Dictionary<string, string> GradeDisplayNames = new Dictionary<string, string>
     {
         { "S", "贡品" },
