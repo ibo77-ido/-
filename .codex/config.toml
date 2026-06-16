@@ -28,3 +28,9 @@ approval_mode = "approve"
 
 [mcp_servers.UnityMCP.tools.batch_execute]
 approval_mode = "approve"
+
+[mcp_servers.UnityMCP.tools.manage_asset]
+approval_mode = "approve"
+
+[mcp_servers.UnityMCP.tools.script_apply_edits]
+approval_mode = "approve"
