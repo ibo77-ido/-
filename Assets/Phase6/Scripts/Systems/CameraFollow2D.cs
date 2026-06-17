@@ -12,18 +12,21 @@ public class CameraFollow2D : MonoBehaviour
     [SerializeField, Min(0.1f)] private float orthographicSize = 2.2f;
     [SerializeField] private bool clampToBounds = true;
     [SerializeField] private Vector2 boundsPadding = new Vector2(0.25f, 0.25f);
+    [SerializeField] private bool followXZPlane;
 
     private Camera cam;
     private Quaternion fixedRotation;
     private Bounds mapBounds;
     private bool hasMapBounds;
     private float fixedZ;
+    private float fixedY;
 
     private void Awake()
     {
         cam = GetComponent<Camera>();
         fixedRotation = transform.rotation;
         fixedZ = transform.position.z;
+        fixedY = transform.position.y;
         ResolveReferences();
         ConfigureCamera();
         RebuildBounds();
@@ -62,10 +65,15 @@ public class CameraFollow2D : MonoBehaviour
 
     private Vector3 GetDesiredPosition()
     {
-        Vector3 desiredPosition = new Vector3(
-            target.position.x + framingOffset.x,
-            target.position.y + framingOffset.y,
-            fixedZ);
+        Vector3 desiredPosition = followXZPlane
+            ? new Vector3(
+                target.position.x + framingOffset.x,
+                fixedY,
+                target.position.z + framingOffset.y)
+            : new Vector3(
+                target.position.x + framingOffset.x,
+                target.position.y + framingOffset.y,
+                fixedZ);
 
         return ClampToMapBounds(desiredPosition);
     }
@@ -162,11 +170,18 @@ public class CameraFollow2D : MonoBehaviour
         float halfWidth = halfHeight * cam.aspect;
         float minX = mapBounds.min.x + halfWidth + boundsPadding.x;
         float maxX = mapBounds.max.x - halfWidth - boundsPadding.x;
-        float minY = mapBounds.min.y + halfHeight + boundsPadding.y;
-        float maxY = mapBounds.max.y - halfHeight - boundsPadding.y;
+        float minDepth = followXZPlane ? mapBounds.min.z + halfHeight + boundsPadding.y : mapBounds.min.y + halfHeight + boundsPadding.y;
+        float maxDepth = followXZPlane ? mapBounds.max.z - halfHeight - boundsPadding.y : mapBounds.max.y - halfHeight - boundsPadding.y;
 
         desiredPosition.x = minX > maxX ? mapBounds.center.x : Mathf.Clamp(desiredPosition.x, minX, maxX);
-        desiredPosition.y = minY > maxY ? mapBounds.center.y : Mathf.Clamp(desiredPosition.y, minY, maxY);
+        if (followXZPlane)
+        {
+            desiredPosition.z = minDepth > maxDepth ? mapBounds.center.z : Mathf.Clamp(desiredPosition.z, minDepth, maxDepth);
+        }
+        else
+        {
+            desiredPosition.y = minDepth > maxDepth ? mapBounds.center.y : Mathf.Clamp(desiredPosition.y, minDepth, maxDepth);
+        }
         return desiredPosition;
     }
 }

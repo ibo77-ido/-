@@ -3,6 +3,14 @@ using UnityEngine.AI;
 
 public class MovementController : MonoBehaviour
 {
+    [Header("Plane Mapping")]
+    [SerializeField] private bool mapNavMeshZToTransformY;
+    [SerializeField] private float mappedNavMeshY;
+    [SerializeField] private float currentPositionSampleDistance = 2f;
+    [SerializeField] private float destinationSampleDistance = 3f;
+    [SerializeField] private float fallbackSpeed = 2.5f;
+    [SerializeField] private float fallbackStoppingDistance = 0.08f;
+
     private NavMeshAgent navMeshAgent;
     private NavMeshPath manualPath;
     private Vector3[] pathCorners = new Vector3[0];
@@ -44,24 +52,32 @@ public class MovementController : MonoBehaviour
             return;
         }
 
-        Vector3 currentPosition = transform.position;
+        Vector3 currentPosition = GetCurrentPathPosition();
         Vector3 steeringTarget = pathCorners[currentCornerIndex];
-        steeringTarget.y = currentPosition.y;
+        if (!mapNavMeshZToTransformY)
+        {
+            steeringTarget.y = currentPosition.y;
+        }
 
         Vector3 toSteeringTarget = steeringTarget - currentPosition;
-        if (toSteeringTarget.magnitude <= Mathf.Max(0.05f, navMeshAgent.stoppingDistance))
+        float cornerThreshold = Mathf.Max(0.05f, GetStoppingDistance());
+        if (toSteeringTarget.sqrMagnitude <= cornerThreshold * cornerThreshold)
         {
             currentCornerIndex++;
             return;
         }
 
-        float moveDistance = navMeshAgent.speed * deltaTime;
-        Vector3 nextPosition = Vector3.MoveTowards(currentPosition, steeringTarget, moveDistance);
-        manualVelocity = (nextPosition - currentPosition) / deltaTime;
+        float moveDistance = GetMoveSpeed() * deltaTime;
+        Vector3 nextPathPosition = Vector3.MoveTowards(currentPosition, steeringTarget, moveDistance);
+        Vector3 nextPosition = ToTransformPosition(nextPathPosition);
+        manualVelocity = (nextPosition - transform.position) / deltaTime;
 
         transform.position = nextPosition;
-        navMeshAgent.nextPosition = nextPosition;
-        navMeshAgent.velocity = manualVelocity;
+        if (!mapNavMeshZToTransformY && navMeshAgent.isOnNavMesh)
+        {
+            navMeshAgent.nextPosition = nextPosition;
+            navMeshAgent.velocity = manualVelocity;
+        }
     }
 
     private void ConfigureManualMovement()
@@ -79,6 +95,20 @@ public class MovementController : MonoBehaviour
     public bool EnsureOnNavMesh(float searchDistance = 2f)
     {
         if (navMeshAgent == null) return false;
+
+        if (mapNavMeshZToTransformY)
+        {
+            NavMeshHit mappedHit;
+            if (NavMesh.SamplePosition(ToPathPosition(transform.position), out mappedHit, Mathf.Max(searchDistance, currentPositionSampleDistance), NavMesh.AllAreas))
+            {
+                Vector3 correctedPosition = ToTransformPosition(mappedHit.position);
+                transform.position = correctedPosition;
+                return true;
+            }
+
+            return false;
+        }
+
         if (navMeshAgent.isOnNavMesh) return true;
 
         NavMeshHit hit;
@@ -99,17 +129,23 @@ public class MovementController : MonoBehaviour
         ConfigureManualMovement();
 
         NavMeshHit hit;
-        if (NavMesh.SamplePosition(target, out hit, 3f, NavMesh.AllAreas))
+        if (NavMesh.SamplePosition(target, out hit, destinationSampleDistance, NavMesh.AllAreas))
         {
             if (manualPath == null)
             {
                 manualPath = new NavMeshPath();
             }
 
-            bool pathFound = navMeshAgent.CalculatePath(hit.position, manualPath);
-            if (pathFound && manualPath.status != NavMeshPathStatus.PathInvalid && manualPath.corners.Length > 1)
+            bool pathFound = mapNavMeshZToTransformY
+                ? NavMesh.CalculatePath(GetCurrentPathPosition(), hit.position, NavMesh.AllAreas, manualPath)
+                : navMeshAgent.CalculatePath(hit.position, manualPath);
+
+            if (pathFound && manualPath.status == NavMeshPathStatus.PathComplete && manualPath.corners.Length > 1)
             {
-                navMeshAgent.ResetPath();
+                if (!mapNavMeshZToTransformY && navMeshAgent.isOnNavMesh)
+                {
+                    navMeshAgent.ResetPath();
+                }
                 pathCorners = manualPath.corners;
                 currentCornerIndex = 1;
                 hasDestination = true;
@@ -132,20 +168,74 @@ public class MovementController : MonoBehaviour
 
     public bool IsMoving()
     {
-        return hasDestination && navMeshAgent != null && navMeshAgent.isOnNavMesh
+        return hasDestination && navMeshAgent != null && (mapNavMeshZToTransformY || navMeshAgent.isOnNavMesh)
             && !HasReachedDestination();
     }
 
     public bool HasReachedDestination()
     {
-        if (!hasDestination || navMeshAgent == null || !navMeshAgent.isOnNavMesh) return false;
+        if (!hasDestination || navMeshAgent == null) return false;
+        if (!mapNavMeshZToTransformY && !navMeshAgent.isOnNavMesh) return false;
         if (pathCorners == null || pathCorners.Length == 0) return false;
 
-        Vector3 currentPosition = transform.position;
+        Vector3 currentPosition = GetCurrentPathPosition();
         Vector3 destination = pathCorners[pathCorners.Length - 1];
-        currentPosition.y = 0f;
-        destination.y = 0f;
+        if (!mapNavMeshZToTransformY)
+        {
+            currentPosition.y = 0f;
+            destination.y = 0f;
+        }
 
-        return Vector3.Distance(currentPosition, destination) <= navMeshAgent.stoppingDistance;
+        float stoppingDistance = GetStoppingDistance();
+        return (currentPosition - destination).sqrMagnitude <= stoppingDistance * stoppingDistance;
+    }
+
+    public void SetMapNavMeshZToTransformY(bool enabled)
+    {
+        mapNavMeshZToTransformY = enabled;
+    }
+
+    public void SetSampleDistances(float currentPositionDistance, float destinationDistance)
+    {
+        currentPositionSampleDistance = Mathf.Max(0.01f, currentPositionDistance);
+        destinationSampleDistance = Mathf.Max(0.01f, destinationDistance);
+    }
+
+    public void SetMappedNavMeshY(float navMeshY)
+    {
+        mappedNavMeshY = navMeshY;
+    }
+
+    public void SetFallbackMovementSettings(float speed, float stoppingDistance)
+    {
+        fallbackSpeed = Mathf.Max(0.01f, speed);
+        fallbackStoppingDistance = Mathf.Max(0.01f, stoppingDistance);
+    }
+
+    private float GetMoveSpeed()
+    {
+        return navMeshAgent != null && navMeshAgent.enabled ? navMeshAgent.speed : fallbackSpeed;
+    }
+
+    private float GetStoppingDistance()
+    {
+        return navMeshAgent != null && navMeshAgent.enabled ? navMeshAgent.stoppingDistance : fallbackStoppingDistance;
+    }
+
+    private Vector3 GetCurrentPathPosition()
+    {
+        return mapNavMeshZToTransformY ? ToPathPosition(transform.position) : transform.position;
+    }
+
+    private Vector3 ToPathPosition(Vector3 transformPosition)
+    {
+        return new Vector3(transformPosition.x, mappedNavMeshY, transformPosition.y);
+    }
+
+    private Vector3 ToTransformPosition(Vector3 pathPosition)
+    {
+        return mapNavMeshZToTransformY
+            ? new Vector3(pathPosition.x, pathPosition.z, transform.position.z)
+            : pathPosition;
     }
 }
