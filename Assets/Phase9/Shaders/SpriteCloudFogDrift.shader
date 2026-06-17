@@ -19,7 +19,6 @@ Shader "Director/Phase9/Sprite Cloud Fog Drift"
     {
         Tags
         {
-            "RenderPipeline"="UniversalPipeline"
             "Queue"="Transparent"
             "IgnoreProjector"="True"
             "RenderType"="Transparent"
@@ -30,11 +29,10 @@ Shader "Director/Phase9/Sprite Cloud Fog Drift"
         Cull Off
         Lighting Off
         ZWrite Off
-        Blend One OneMinusSrcAlpha
+        Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
         {
-            Tags { "LightMode"="SRPDefaultUnlit" }
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -127,7 +125,6 @@ Shader "Director/Phase9/Sprite Cloud Fog Drift"
                 float alphaBreath = 1.0 - _AlphaPulse + _AlphaPulse * i.pulse;
                 float edgeMist = smoothstep(0.02, 0.2, c.a);
                 c.a *= lerp(alphaBreath * 0.85, alphaBreath, edgeMist);
-                c.rgb *= c.a;
                 return c;
             }
             ENDCG

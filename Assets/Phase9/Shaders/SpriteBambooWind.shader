@@ -19,7 +19,6 @@ Shader "Director/Phase9/Sprite Bamboo Wind"
     {
         Tags
         {
-            "RenderPipeline"="UniversalPipeline"
             "Queue"="Transparent"
             "IgnoreProjector"="True"
             "RenderType"="Transparent"
@@ -30,11 +29,10 @@ Shader "Director/Phase9/Sprite Bamboo Wind"
         Cull Off
         Lighting Off
         ZWrite Off
-        Blend One OneMinusSrcAlpha
+        Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
         {
-            Tags { "LightMode"="SRPDefaultUnlit" }
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -105,7 +103,6 @@ Shader "Director/Phase9/Sprite Bamboo Wind"
             fixed4 frag(v2f i) : SV_Target
             {
                 fixed4 c = tex2D(_MainTex, i.texcoord) * i.color;
-                c.rgb *= c.a;
                 return c;
             }
             ENDCG

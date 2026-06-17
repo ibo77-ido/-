@@ -1237,10 +1237,12 @@ MonoBehaviour:
   maxChildren: 8
   swayAngle: 2.5
   swaySpeed: 1.25
-  horizontalDrift: 0.015
-  baseMotionFloor: 0.005
-  heightExponent: 2.2
-  driftScale: 0.22
+  horizontalDrift: 0
+  baseMotionFloor: 0.28
+  heightExponent: 4.2
+  driftScale: 0.8
+  rotationInfluence: 0
+  lockBottomSegments: 2
 --- !u!1001 &731298645
 PrefabInstance:
   m_ObjectHideFlags: 0
