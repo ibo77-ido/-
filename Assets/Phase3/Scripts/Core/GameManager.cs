@@ -178,6 +178,12 @@ public class GameManager : MonoBehaviour
 
     public void GoToResult()
     {
+        if (!CanProgress())
+        {
+            CompleteModuleForBridge(GameState.Firing);
+            return;
+        }
+
         if (resultPanelController != null) resultPanelController.ShowResult();
         advanceOrderOnNextStart = true;
         SetState(GameState.Result);
@@ -192,6 +198,17 @@ public class GameManager : MonoBehaviour
         }
 
         BeginOrder(true);
+    }
+
+    public void AdvanceOrderForBridge()
+    {
+        if (orderManager != null)
+        {
+            orderManager.NextOrder();
+        }
+
+        advanceOrderOnNextStart = false;
+        StopGameplayLoop();
     }
 
     private void BeginOrder(bool advanceOrder)
