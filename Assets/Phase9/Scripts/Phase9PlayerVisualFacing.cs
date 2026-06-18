@@ -5,7 +5,7 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
 {
     [SerializeField] private Transform visualRoot;
     [SerializeField] private Vector3 desiredLocalEuler;
-    [SerializeField] private Vector3 desiredRootEuler = new Vector3(-90f, 0f, 0f);
+    [SerializeField] private Vector3 desiredRootEuler = new Vector3(180f, 0f, 0f);
     [SerializeField] private bool desiredFlipY = true;
 
     private void Awake()

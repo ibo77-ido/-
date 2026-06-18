@@ -1,0 +1,8 @@
+D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp-Editor.csproj.AssemblyReference.cache
+D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp-Editor.csproj.CoreCompileInputs.cache
+D:\unity\UnityProject\Director\Temp\bin\Debug\Assembly-CSharp-Editor.dll
+D:\unity\UnityProject\Director\Temp\bin\Debug\Assembly-CSharp-Editor.pdb
+D:\unity\UnityProject\Director\Temp\bin\Debug\Assembly-CSharp.pdb
+D:\unity\UnityProject\Director\obj\Debug\Assembly.1F1299F3.Up2Date
+D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp-Editor.dll
+D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp-Editor.pdb

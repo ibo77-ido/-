@@ -3,12 +3,16 @@
   "WorkspaceRootPath": "D:\\unity\\UnityProject\\Director\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Scripts\\Phase9PlayerVisualFacing.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Phase9\\Scripts\\Phase9PlayerVisualFacing.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{CCAA8FC0-6C05-5370-26F2-C2FFE7F29858}|Assembly-CSharp.csproj|d:\\unity\\unityproject\\director\\assets\\phase9\\scripts\\spriteswaycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CCAA8FC0-6C05-5370-26F2-C2FFE7F29858}|Assembly-CSharp.csproj|solutionrelative:assets\\phase9\\scripts\\spriteswaycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Shaders\\SpriteBambooWind.shader||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Phase9\\Shaders\\SpriteBambooWind.shader||{3B902123-F8A7-4915-9F01-361F908088D0}"
+      "AbsoluteMoniker": "D:0:0:{CCAA8FC0-6C05-5370-26F2-C2FFE7F29858}|Assembly-CSharp.csproj|D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Shaders\\SpriteBambooWind.shader||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{CCAA8FC0-6C05-5370-26F2-C2FFE7F29858}|Assembly-CSharp.csproj|solutionrelative:Assets\\Phase9\\Shaders\\SpriteBambooWind.shader||{3B902123-F8A7-4915-9F01-361F908088D0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,24 +22,37 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "SpriteSwayController.cs",
               "DocumentMoniker": "D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Scripts\\SpriteSwayController.cs",
               "RelativeDocumentMoniker": "Assets\\Phase9\\Scripts\\SpriteSwayController.cs",
               "ToolTip": "D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Scripts\\SpriteSwayController.cs",
               "RelativeToolTip": "Assets\\Phase9\\Scripts\\SpriteSwayController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKgAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAcAAABCAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-17T04:35:29.752Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
+              "Title": "Phase9PlayerVisualFacing.cs",
+              "DocumentMoniker": "D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Scripts\\Phase9PlayerVisualFacing.cs",
+              "RelativeDocumentMoniker": "Assets\\Phase9\\Scripts\\Phase9PlayerVisualFacing.cs",
+              "ToolTip": "D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Scripts\\Phase9PlayerVisualFacing.cs",
+              "RelativeToolTip": "Assets\\Phase9\\Scripts\\Phase9PlayerVisualFacing.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-18T12:46:29.322Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "SpriteBambooWind.shader",
               "DocumentMoniker": "D:\\unity\\UnityProject\\Director\\Assets\\Phase9\\Shaders\\SpriteBambooWind.shader",
               "RelativeDocumentMoniker": "Assets\\Phase9\\Shaders\\SpriteBambooWind.shader",
@@ -43,8 +60,7 @@
               "RelativeToolTip": "Assets\\Phase9\\Shaders\\SpriteBambooWind.shader",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002777|",
-              "WhenOpened": "2026-06-17T08:56:03.679Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-17T08:56:03.679Z"
             }
           ]
         }

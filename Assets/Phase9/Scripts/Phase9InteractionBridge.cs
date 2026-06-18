@@ -952,7 +952,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         }
     }
 
-    private void ResolvePlayerReferences(bool allowFind = true)
+private void ResolvePlayerReferences(bool allowFind = true)
     {
         if (playerCharacter != null && movementController != null && player != null)
         {
@@ -969,11 +969,24 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             if (playerCharacter == null)
             {
                 playerCharacter = player.GetComponent<PlayerCharacter>();
+                if (playerCharacter == null)
+                {
+                    playerCharacter = player.GetComponentInParent<PlayerCharacter>();
+                }
             }
 
             if (movementController == null)
             {
                 movementController = player.GetComponent<MovementController>();
+                if (movementController == null)
+                {
+                    movementController = player.GetComponentInParent<MovementController>();
+                }
+            }
+
+            if (playerCharacter != null)
+            {
+                player = playerCharacter.Transform;
             }
 
             if (movementController != null && navMeshPlaneResolved)
@@ -991,7 +1004,19 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
         playerResolveAttempted = true;
 
-        GameObject playerObject = FindGameObject(playerName);
+        GameObject playerObject = FindGameObject("HeroineRoot");
+        if (playerObject == null)
+        {
+            playerObject = FindGameObject(playerName);
+        }
+        if (playerObject == null)
+        {
+            playerObject = FindGameObject("GirlModel");
+        }
+        if (playerObject == null)
+        {
+            playerObject = FindGameObject("\u5973\u4E3B");
+        }
         if (playerObject == null)
         {
             return;
@@ -1002,11 +1027,24 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         if (playerCharacter == null)
         {
             playerCharacter = playerObject.GetComponent<PlayerCharacter>();
+            if (playerCharacter == null)
+            {
+                playerCharacter = playerObject.GetComponentInParent<PlayerCharacter>();
+            }
         }
 
         if (movementController == null)
         {
             movementController = playerObject.GetComponent<MovementController>();
+            if (movementController == null)
+            {
+                movementController = playerObject.GetComponentInParent<MovementController>();
+            }
+        }
+
+        if (playerCharacter != null)
+        {
+            player = playerCharacter.Transform;
         }
 
         if (movementController != null && navMeshPlaneResolved)
