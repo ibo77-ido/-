@@ -15,10 +15,19 @@ public static class Phase9XZSceneNormalizer
     private const string ScenePath = "Assets/Phase9/Scenes/SampleScene.unity";
     private const string RequestPath = "Library/Phase9XZSceneNormalizer.request";
     private const string ReportPath = "Assets/Screenshots/phase9-xz-normalize-report.txt";
-    private const string BakeMeshAssetPath = "Assets/Generated/NavMesh/NavMeshWalkableBakeMesh_FromSprite.asset";
-    private const string BakeMeshObjectName = "NavMeshWalkableBakeMesh_FromSprite";
+    private const string BakeMeshAssetPath = "Assets/Generated/NavMesh/NavMeshWalkableBakeMesh_FromAlpha.asset";
+    private const string BakeMeshObjectName = "NavMeshWalkableBakeMesh_FromAlpha";
+    private const string LegacyBakeMeshObjectName = "NavMeshWalkableBakeMesh_FromSprite";
     private const string RoadLayerName = "Road";
     private const float DefaultNavY = 3.26f;
+    private const int AlphaMaskBlockSize = 4;
+    private const byte AlphaMaskThreshold = 32;
+    private const float AlphaMaskCoverageThreshold = 0.35f;
+    private const string Phase9AgentTypeName = "Phase9SmallAgent";
+    private const float Phase9AgentRadius = 0.06f;
+    private const float Phase9AgentHeight = 0.5f;
+    private const float Phase9AgentClimb = 0.05f;
+    private const float Phase9AgentSlope = 45f;
 
     static Phase9XZSceneNormalizer()
     {
@@ -82,7 +91,7 @@ public static class Phase9XZSceneNormalizer
 
             AlignWalkableToStaticLayer(scene, walkable, navY);
             EnsureWalkableVisualSource(walkable);
-            Mesh walkableMesh = BuildMeshFromWalkableSprite(walkable);
+            Mesh walkableMesh = BuildMeshFromWalkableAlphaMask(walkable);
             GameObject bakeMeshObject = EnsureBakeMeshObject(scene, walkable, walkableMesh, roadLayer);
             NavMeshSurface surface = EnsureNavMeshSurface(scene, roadLayer);
             BindPhase9RuntimeReferences(scene, navY);
@@ -457,57 +466,63 @@ public static class Phase9XZSceneNormalizer
         modifier.ignoreFromBuild = true;
     }
 
-    private static Mesh BuildMeshFromWalkableSprite(GameObject walkable)
+    private static Mesh BuildMeshFromWalkableAlphaMask(GameObject walkable)
     {
         SpriteRenderer renderer = walkable.GetComponent<SpriteRenderer>();
         Sprite sprite = renderer.sprite;
-        Vector2[] spriteVertices = sprite.vertices;
-        ushort[] spriteTriangles = sprite.triangles;
+        Texture2D texture = sprite.texture;
+        Rect rect = sprite.rect;
+        int rectX = Mathf.RoundToInt(rect.x);
+        int rectY = Mathf.RoundToInt(rect.y);
+        int rectWidth = Mathf.RoundToInt(rect.width);
+        int rectHeight = Mathf.RoundToInt(rect.height);
 
-        const float thickness = 0.05f;
-        Vector3[] vertices = new Vector3[spriteVertices.Length * 2];
-        for (int i = 0; i < spriteVertices.Length; i++)
+        EnsureTextureReadable(texture);
+        Color32[] pixels = texture.GetPixels32();
+        int columns = Mathf.CeilToInt(rectWidth / (float)AlphaMaskBlockSize);
+        int rows = Mathf.CeilToInt(rectHeight / (float)AlphaMaskBlockSize);
+        bool[,] mask = new bool[columns, rows];
+
+        for (int row = 0; row < rows; row++)
         {
-            vertices[i] = new Vector3(spriteVertices[i].x, 0f, spriteVertices[i].y);
-            vertices[i + spriteVertices.Length] = new Vector3(spriteVertices[i].x, -thickness, spriteVertices[i].y);
+            int py0 = row * AlphaMaskBlockSize;
+            int py1 = Mathf.Min(py0 + AlphaMaskBlockSize, rectHeight);
+            for (int column = 0; column < columns; column++)
+            {
+                int px0 = column * AlphaMaskBlockSize;
+                int px1 = Mathf.Min(px0 + AlphaMaskBlockSize, rectWidth);
+                int sampleCount = 0;
+                int solidCount = 0;
+
+                for (int py = py0; py < py1; py++)
+                {
+                    int rowOffset = (rectY + py) * texture.width;
+                    for (int px = px0; px < px1; px++)
+                    {
+                        sampleCount++;
+                        if (pixels[rowOffset + rectX + px].a >= AlphaMaskThreshold)
+                        {
+                            solidCount++;
+                        }
+                    }
+                }
+
+                mask[column, row] = sampleCount > 0
+                    && solidCount / (float)sampleCount >= AlphaMaskCoverageThreshold;
+            }
         }
 
-        int[] topTriangles = new int[spriteTriangles.Length];
-        for (int i = 0; i < spriteTriangles.Length; i++)
+        List<AlphaRect> rectangles = MergeMaskIntoRectangles(mask, columns, rows);
+        if (rectangles.Count == 0)
         {
-            topTriangles[i] = spriteTriangles[i];
+            throw new InvalidOperationException("NavMesh-walkable alpha mask did not contain any walkable pixels.");
         }
 
-        int[] triangles = topTriangles;
-        Mesh testMesh = new Mesh();
-        testMesh.vertices = vertices;
-        testMesh.triangles = triangles;
-        testMesh.RecalculateNormals();
-        if (HasDownwardAverageNormal(testMesh))
+        List<Vector3> vertices = new List<Vector3>(rectangles.Count * 8);
+        List<int> triangles = new List<int>(rectangles.Count * 36);
+        for (int i = 0; i < rectangles.Count; i++)
         {
-            FlipTriangleWinding(topTriangles);
-        }
-
-        UnityEngine.Object.DestroyImmediate(testMesh);
-
-        List<int> meshTriangles = new List<int>(spriteTriangles.Length * 2);
-        meshTriangles.AddRange(topTriangles);
-        for (int i = 0; i < topTriangles.Length; i += 3)
-        {
-            meshTriangles.Add(topTriangles[i + 2] + spriteVertices.Length);
-            meshTriangles.Add(topTriangles[i + 1] + spriteVertices.Length);
-            meshTriangles.Add(topTriangles[i] + spriteVertices.Length);
-        }
-
-        AddBoundarySides(spriteVertices, spriteTriangles, meshTriangles);
-        triangles = meshTriangles.ToArray();
-        testMesh = new Mesh();
-        testMesh.vertices = vertices;
-        testMesh.triangles = triangles;
-        testMesh.RecalculateNormals();
-        if (HasDownwardAverageNormal(testMesh))
-        {
-            FlipTriangleWinding(triangles);
+            AddAlphaMaskBox(rectangles[i], sprite, rectWidth, rectHeight, vertices, triangles);
         }
 
         Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(BakeMeshAssetPath);
@@ -521,13 +536,154 @@ public static class Phase9XZSceneNormalizer
 
         mesh.Clear();
         mesh.name = BakeMeshObjectName;
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
+        mesh.indexFormat = vertices.Count > 65535
+            ? UnityEngine.Rendering.IndexFormat.UInt32
+            : UnityEngine.Rendering.IndexFormat.UInt16;
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
-        UnityEngine.Object.DestroyImmediate(testMesh);
         EditorUtility.SetDirty(mesh);
         return mesh;
+    }
+
+    private static void EnsureTextureReadable(Texture2D texture)
+    {
+        string texturePath = AssetDatabase.GetAssetPath(texture);
+        TextureImporter importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+        if (importer == null || importer.isReadable)
+        {
+            return;
+        }
+
+        importer.isReadable = true;
+        importer.SaveAndReimport();
+    }
+
+    private static List<AlphaRect> MergeMaskIntoRectangles(bool[,] mask, int columns, int rows)
+    {
+        List<AlphaRect> completed = new List<AlphaRect>();
+        List<AlphaRect> active = new List<AlphaRect>();
+
+        for (int row = 0; row < rows; row++)
+        {
+            List<AlphaRect> segments = new List<AlphaRect>();
+            int column = 0;
+            while (column < columns)
+            {
+                while (column < columns && !mask[column, row])
+                {
+                    column++;
+                }
+
+                if (column >= columns)
+                {
+                    break;
+                }
+
+                int start = column;
+                while (column < columns && mask[column, row])
+                {
+                    column++;
+                }
+
+                segments.Add(new AlphaRect(start, row, column, row + 1));
+            }
+
+            bool[] usedActive = new bool[active.Count];
+            for (int i = 0; i < segments.Count; i++)
+            {
+                AlphaRect segment = segments[i];
+                int match = -1;
+                for (int activeIndex = 0; activeIndex < active.Count; activeIndex++)
+                {
+                    AlphaRect candidate = active[activeIndex];
+                    if (!usedActive[activeIndex]
+                        && candidate.X0 == segment.X0
+                        && candidate.X1 == segment.X1
+                        && candidate.Y1 == segment.Y0)
+                    {
+                        match = activeIndex;
+                        break;
+                    }
+                }
+
+                if (match >= 0)
+                {
+                    AlphaRect extended = active[match];
+                    extended.Y1 = segment.Y1;
+                    active[match] = extended;
+                    usedActive[match] = true;
+                }
+                else
+                {
+                    active.Add(segment);
+                    Array.Resize(ref usedActive, active.Count);
+                    usedActive[active.Count - 1] = true;
+                }
+            }
+
+            for (int activeIndex = active.Count - 1; activeIndex >= 0; activeIndex--)
+            {
+                if (usedActive[activeIndex])
+                {
+                    continue;
+                }
+
+                completed.Add(active[activeIndex]);
+                active.RemoveAt(activeIndex);
+            }
+        }
+
+        completed.AddRange(active);
+        return completed;
+    }
+
+    private static void AddAlphaMaskBox(
+        AlphaRect rect,
+        Sprite sprite,
+        int rectWidth,
+        int rectHeight,
+        List<Vector3> vertices,
+        List<int> triangles)
+    {
+        const float thickness = 0.05f;
+        float ppu = sprite.pixelsPerUnit;
+        float px0 = Mathf.Clamp(rect.X0 * AlphaMaskBlockSize, 0, rectWidth);
+        float py0 = Mathf.Clamp(rect.Y0 * AlphaMaskBlockSize, 0, rectHeight);
+        float px1 = Mathf.Clamp(rect.X1 * AlphaMaskBlockSize, 0, rectWidth);
+        float py1 = Mathf.Clamp(rect.Y1 * AlphaMaskBlockSize, 0, rectHeight);
+        float x0 = (px0 - sprite.pivot.x) / ppu;
+        float z0 = (py0 - sprite.pivot.y) / ppu;
+        float x1 = (px1 - sprite.pivot.x) / ppu;
+        float z1 = (py1 - sprite.pivot.y) / ppu;
+        int start = vertices.Count;
+
+        vertices.Add(new Vector3(x0, 0f, z0));
+        vertices.Add(new Vector3(x1, 0f, z0));
+        vertices.Add(new Vector3(x1, 0f, z1));
+        vertices.Add(new Vector3(x0, 0f, z1));
+        vertices.Add(new Vector3(x0, -thickness, z0));
+        vertices.Add(new Vector3(x1, -thickness, z0));
+        vertices.Add(new Vector3(x1, -thickness, z1));
+        vertices.Add(new Vector3(x0, -thickness, z1));
+
+        AddQuad(triangles, start + 0, start + 3, start + 2, start + 1);
+        AddQuad(triangles, start + 4, start + 5, start + 6, start + 7);
+        AddQuad(triangles, start + 0, start + 1, start + 5, start + 4);
+        AddQuad(triangles, start + 1, start + 2, start + 6, start + 5);
+        AddQuad(triangles, start + 2, start + 3, start + 7, start + 6);
+        AddQuad(triangles, start + 3, start + 0, start + 4, start + 7);
+    }
+
+    private static void AddQuad(List<int> triangles, int a, int b, int c, int d)
+    {
+        triangles.Add(a);
+        triangles.Add(b);
+        triangles.Add(c);
+        triangles.Add(a);
+        triangles.Add(c);
+        triangles.Add(d);
     }
 
     private static void AddBoundarySides(Vector2[] vertices, ushort[] triangles, List<int> meshTriangles)
@@ -587,6 +743,22 @@ public static class Phase9XZSceneNormalizer
         }
     }
 
+    private struct AlphaRect
+    {
+        public readonly int X0;
+        public readonly int Y0;
+        public readonly int X1;
+        public int Y1;
+
+        public AlphaRect(int x0, int y0, int x1, int y1)
+        {
+            X0 = x0;
+            Y0 = y0;
+            X1 = x1;
+            Y1 = y1;
+        }
+    }
+
     private static bool HasDownwardAverageNormal(Mesh mesh)
     {
         Vector3[] normals = mesh.normals;
@@ -616,6 +788,7 @@ public static class Phase9XZSceneNormalizer
 
     private static GameObject EnsureBakeMeshObject(Scene scene, GameObject walkable, Mesh mesh, int roadLayer)
     {
+        DisableLegacyBakeMeshObject(scene);
         GameObject bakeMeshObject = FindSceneObject(scene, BakeMeshObjectName);
         if (bakeMeshObject == null)
         {
@@ -658,8 +831,36 @@ public static class Phase9XZSceneNormalizer
         return bakeMeshObject;
     }
 
+    private static void DisableLegacyBakeMeshObject(Scene scene)
+    {
+        GameObject legacy = FindSceneObject(scene, LegacyBakeMeshObjectName);
+        if (legacy == null)
+        {
+            return;
+        }
+
+        int defaultLayer = LayerMask.NameToLayer("Default");
+        if (defaultLayer >= 0)
+        {
+            legacy.layer = defaultLayer;
+        }
+
+        MeshCollider collider = legacy.GetComponent<MeshCollider>();
+        if (collider != null)
+        {
+            collider.enabled = false;
+        }
+
+        MeshRenderer renderer = legacy.GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            renderer.enabled = false;
+        }
+    }
+
     private static NavMeshSurface EnsureNavMeshSurface(Scene scene, int roadLayer)
     {
+        int agentTypeId = EnsurePhase9AgentType();
         GameObject root = FindSceneObject(scene, "Phase9_NavMeshSurface");
         if (root == null)
         {
@@ -677,10 +878,96 @@ public static class Phase9XZSceneNormalizer
         }
 
         surface.collectObjects = CollectObjects.All;
+        surface.agentTypeID = agentTypeId;
         surface.layerMask = 1 << roadLayer;
         surface.defaultArea = 0;
         surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
         return surface;
+    }
+
+    private static int EnsurePhase9AgentType()
+    {
+        for (int i = 0; i < NavMesh.GetSettingsCount(); i++)
+        {
+            NavMeshBuildSettings existing = NavMesh.GetSettingsByIndex(i);
+            int id = existing.agentTypeID;
+            if (NavMesh.GetSettingsNameFromID(id) == Phase9AgentTypeName)
+            {
+                ApplyPhase9AgentSettings(id);
+                return id;
+            }
+        }
+
+        NavMeshBuildSettings created = NavMesh.CreateSettings();
+        ApplyPhase9AgentSettings(created.agentTypeID);
+        RenameAgentType(created.agentTypeID, Phase9AgentTypeName);
+        return created.agentTypeID;
+    }
+
+    private static void ApplyPhase9AgentSettings(int agentTypeId)
+    {
+        UnityEngine.Object settingsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/NavMeshAreas.asset")[0];
+        SerializedObject settings = new SerializedObject(settingsAsset);
+        SerializedProperty buildSettings = settings.FindProperty("m_Settings");
+        SerializedProperty names = settings.FindProperty("m_SettingNames");
+
+        for (int i = 0; i < buildSettings.arraySize; i++)
+        {
+            SerializedProperty item = buildSettings.GetArrayElementAtIndex(i);
+            SerializedProperty idProperty = item.FindPropertyRelative("agentTypeID");
+            if (idProperty == null || idProperty.intValue != agentTypeId)
+            {
+                continue;
+            }
+
+            SetRelativeFloat(item, "agentRadius", Phase9AgentRadius);
+            SetRelativeFloat(item, "agentHeight", Phase9AgentHeight);
+            SetRelativeFloat(item, "agentClimb", Phase9AgentClimb);
+            SetRelativeFloat(item, "agentSlope", Phase9AgentSlope);
+            SetRelativeFloat(item, "cellSize", 0.01f);
+            SetRelativeBool(item, "manualCellSize", true);
+            SetRelativeFloat(item, "minRegionArea", 0.0004f);
+            break;
+        }
+
+        for (int i = 0; i < names.arraySize; i++)
+        {
+            SerializedProperty name = names.GetArrayElementAtIndex(i);
+            if (name.stringValue == Phase9AgentTypeName)
+            {
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(settingsAsset);
+                AssetDatabase.SaveAssets();
+                return;
+            }
+        }
+
+        settings.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(settingsAsset);
+        AssetDatabase.SaveAssets();
+    }
+
+    private static void RenameAgentType(int agentTypeId, string name)
+    {
+        UnityEngine.Object settingsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/NavMeshAreas.asset")[0];
+        SerializedObject settings = new SerializedObject(settingsAsset);
+        SerializedProperty buildSettings = settings.FindProperty("m_Settings");
+        SerializedProperty names = settings.FindProperty("m_SettingNames");
+
+        for (int i = 0; i < buildSettings.arraySize && i < names.arraySize; i++)
+        {
+            SerializedProperty item = buildSettings.GetArrayElementAtIndex(i);
+            SerializedProperty idProperty = item.FindPropertyRelative("agentTypeID");
+            if (idProperty != null && idProperty.intValue == agentTypeId)
+            {
+                names.GetArrayElementAtIndex(i).stringValue = name;
+                break;
+            }
+        }
+
+        settings.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(settingsAsset);
+        AssetDatabase.SaveAssets();
     }
 
     private static string BuildRoadNavMesh(NavMeshSurface surface, GameObject bakeMeshObject)
@@ -768,10 +1055,11 @@ public static class Phase9XZSceneNormalizer
 
         agent.updatePosition = false;
         agent.updateRotation = false;
+        agent.agentTypeID = EnsurePhase9AgentType();
         agent.speed = Mathf.Max(agent.speed, 2.5f);
         agent.stoppingDistance = Mathf.Max(agent.stoppingDistance, 0.08f);
-        agent.radius = Mathf.Clamp(agent.radius, 0.05f, 0.22f);
-        agent.height = Mathf.Max(agent.height, 0.2f);
+        agent.radius = Phase9AgentRadius;
+        agent.height = Phase9AgentHeight;
         agent.baseOffset = 0f;
 
         movementController.SetMapNavMeshZToTransformY(false);
@@ -993,6 +1281,24 @@ public static class Phase9XZSceneNormalizer
     private static void SetBool(SerializedObject serializedObject, string propertyName, bool value)
     {
         SerializedProperty property = serializedObject.FindProperty(propertyName);
+        if (property != null)
+        {
+            property.boolValue = value;
+        }
+    }
+
+    private static void SetRelativeFloat(SerializedProperty parent, string propertyName, float value)
+    {
+        SerializedProperty property = parent.FindPropertyRelative(propertyName);
+        if (property != null)
+        {
+            property.floatValue = value;
+        }
+    }
+
+    private static void SetRelativeBool(SerializedProperty parent, string propertyName, bool value)
+    {
+        SerializedProperty property = parent.FindPropertyRelative(propertyName);
         if (property != null)
         {
             property.boolValue = value;

@@ -1815,3 +1815,65 @@ Reason: P8-06 Contract §6 requires Bridge to control Gameplay UI visibility via
 Impact: ReparentPhase3Canvas() method in GameplayBridgeManager moves Phase3's Canvas GameObject under GameplayCanvasRoot at runtime after additive load completes.
 
 Phase7 CLOSED.
+
+---
+
+## Phase9 role-mobile Step 3 — NavMesh Coverage Validator Design
+
+Date: 2026-06-18
+
+Context: role-mobile Step 3 需要验证 Phase9 NavMesh 蓝色区域从女主起点全连通，且覆盖 4 个核心交互点。
+
+Options:
+
+Option A: 扩展 `Phase9XZSceneNormalizer.ValidateReachableEntries` 增加 area 采样
+Pros: 复用现有工具入口
+Cons: Normalizer 是 bake 修复工具，混入纯验证逻辑违反单一职责；采样逻辑与 bake 流程耦合
+
+Option B: 新建独立 `Phase9NavMeshCoverageValidator` Editor 工具
+Pros: 纯只读验证，与 bake 修复解耦；可单独运行；报告独立输出
+Cons: 多一个 Editor 文件
+
+Chosen Option: Option B
+
+Reason: 验证与修复职责分离；run.md 要求 Serialized References / Scene Mutation 显式声明，纯只读工具最易满足 NONE/NONE；Normalizer 已有 `ValidateReachableEntries` 仅测 4 点，Step 3 需要更广泛区域采样。
+
+Impact: 新增 `Assets/Phase9/Scripts/Editor/Phase9NavMeshCoverageValidator.cs`，菜单 `Phase9/Verify/NavMesh Coverage Report`，batchmode 入口 `RunFromCommandLine`，报告输出 `Assets/Screenshots/phase9-navmesh-coverage-report.txt`。
+
+## Phase9 role-mobile Step 3 — Sampling Strategy
+
+Date: 2026-06-18
+
+Context: 如何对 NavMesh 蓝色区域采样以验证连通性。
+
+Options:
+
+Option A: 网格扫描 walkable SpriteRenderer.bounds，每隔 X 米取一点
+Pros: 实现简单
+Cons: 包含 NavMesh 外的点（蓝色图片边缘外）；SamplePosition 会过滤但浪费采样
+
+Option B: NavMesh.CalculateTriangulation 三角形质心采样
+Pros: 直接采样实际 NavMesh 表面；每个采样点必在 NavMesh 上
+Cons: 三角形数量可能很多
+
+Chosen Option: Option B + step 抽样 (max 300 点)
+
+Reason: 三角形质心必在 NavMesh 内，避免无效采样；step = max(1, triangles/300) 控制采样规模在 300 点内，兼顾覆盖密度与执行时间。
+
+Impact: `BuildSamplePoints` 实现，300 点采样实测 < 1 秒完成。
+
+## Phase9 role-mobile Step 3 — Result
+
+Date: 2026-06-18
+
+Verdict: PASS
+
+- NavMesh vertices=2467, triangles=1163, navY=3.2609
+- 女主 origin (-0.9500, 3.2609, -2.3600) SamplePosition PASS
+- Coverage: reachable=300 / unreachable=0
+- Order-interact: PASS distance=2.345
+- Shape-interact: PASS distance=3.406
+- Glaze-interact: PASS distance=4.230
+- Kiln-interact: PASS distance=3.807
+
+Step 3 CLOSED.

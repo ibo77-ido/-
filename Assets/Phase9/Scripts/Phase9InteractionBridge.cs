@@ -22,8 +22,10 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     [SerializeField] private PlayerCharacter playerCharacter;
     [SerializeField] private MovementController movementController;
     [SerializeField] private Camera targetCamera;
-    [SerializeField] private string walkableAreaName = "NavMesh-walkable (1)";
+    [SerializeField] private string walkableAreaName = "NavMesh-walkable";
+    [SerializeField] private string walkableBakeMeshName = "NavMeshWalkableBakeMesh_FromAlpha";
     [SerializeField, Min(0.01f)] private float clickSampleDistance = 0.25f;
+    [SerializeField, Min(0.02f)] private float pathCoverageSampleStep = 0.08f;
     [SerializeField] private float navMeshPlaneY = 0.52f;
 
     [Header("Runtime UI")]
@@ -35,9 +37,8 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     private Transform player;
     private Transform walkableArea;
     private SpriteRenderer walkableRenderer;
-    private Sprite walkableSprite;
-    private Vector2[] walkableSpriteVertices;
-    private ushort[] walkableSpriteTriangles;
+    private MeshFilter walkableBakeMeshFilter;
+    private Mesh walkableBakeMesh;
     private GameManager phase3GameManager;
     private ResultPanelController resultPanelController;
     private GraphicRaycaster phase3GraphicRaycaster;
@@ -50,6 +51,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     private bool kilnDone;
     private bool playerResolveAttempted;
     private bool walkableResolveAttempted;
+    private bool walkableBakeMeshResolveAttempted;
     private bool navMeshPlaneResolved;
 
     private sealed class EntryPoint
@@ -668,7 +670,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             return false;
         }
 
-        if (!IsInsideWalkableVisualCoverage(worldPoint))
+        if (!IsInsideWalkableArea(worldPoint))
         {
             return false;
         }
@@ -683,7 +685,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         }
 
         Vector3 hitWorldPoint = new Vector3(targetHit.position.x, worldPoint.y, targetHit.position.z);
-        if (!IsInsideWalkableVisualCoverage(hitWorldPoint))
+        if (!IsInsideWalkableArea(hitWorldPoint))
         {
             return false;
         }
@@ -712,6 +714,11 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             return false;
         }
 
+        if (!IsPathInsideWalkableArea(path))
+        {
+            return false;
+        }
+
         navTarget = targetHit.position;
         return true;
     }
@@ -733,35 +740,67 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         return true;
     }
 
-    private bool IsInsideWalkableVisualCoverage(Vector3 worldPoint)
+    private bool IsInsideWalkableArea(Vector3 worldPoint)
     {
-        if (!ResolveWalkableArea())
+        if (ResolveWalkableBakeMesh())
+        {
+            return IsInsideWalkableBakeMesh(worldPoint);
+        }
+
+        return IsInsideWalkableVisualBounds(worldPoint);
+    }
+
+    private bool IsPathInsideWalkableArea(NavMeshPath path)
+    {
+        if (path == null || path.corners == null || path.corners.Length == 0)
         {
             return false;
         }
 
-        Bounds bounds = walkableRenderer != null ? walkableRenderer.bounds : new Bounds(walkableArea.position, Vector3.zero);
-        if (worldPoint.x < bounds.min.x
-            || worldPoint.x > bounds.max.x
-            || worldPoint.z < bounds.min.z
-            || worldPoint.z > bounds.max.z)
+        for (int i = 0; i < path.corners.Length; i++)
+        {
+            if (!IsInsideWalkableArea(path.corners[i]))
+            {
+                return false;
+            }
+        }
+
+        for (int i = 1; i < path.corners.Length; i++)
+        {
+            Vector3 from = path.corners[i - 1];
+            Vector3 to = path.corners[i];
+            float distance = Vector3.Distance(from, to);
+            int sampleCount = Mathf.Max(1, Mathf.CeilToInt(distance / pathCoverageSampleStep));
+            for (int sample = 1; sample < sampleCount; sample++)
+            {
+                Vector3 point = Vector3.Lerp(from, to, sample / (float)sampleCount);
+                if (!IsInsideWalkableArea(point))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsInsideWalkableBakeMesh(Vector3 worldPoint)
+    {
+        if (walkableBakeMeshFilter == null || walkableBakeMesh == null)
         {
             return false;
         }
 
-        if (walkableSpriteVertices == null || walkableSpriteTriangles == null)
+        Vector3 localPoint = walkableBakeMeshFilter.transform.worldToLocalMatrix.MultiplyPoint3x4(worldPoint);
+        Vector3[] vertices = walkableBakeMesh.vertices;
+        int[] triangles = walkableBakeMesh.triangles;
+        for (int i = 0; i < triangles.Length; i += 3)
         {
-            return true;
-        }
-
-        Vector3 localPoint = walkableArea.InverseTransformPoint(worldPoint);
-        Vector2 spritePoint = new Vector2(localPoint.x, localPoint.y);
-        for (int i = 0; i + 2 < walkableSpriteTriangles.Length; i += 3)
-        {
-            Vector2 a = walkableSpriteVertices[walkableSpriteTriangles[i]];
-            Vector2 b = walkableSpriteVertices[walkableSpriteTriangles[i + 1]];
-            Vector2 c = walkableSpriteVertices[walkableSpriteTriangles[i + 2]];
-            if (IsPointInTriangle(spritePoint, a, b, c))
+            if (IsPointInsideTriangleXZ(
+                localPoint,
+                vertices[triangles[i]],
+                vertices[triangles[i + 1]],
+                vertices[triangles[i + 2]]))
             {
                 return true;
             }
@@ -770,19 +809,24 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         return false;
     }
 
-    private static bool IsPointInTriangle(Vector2 point, Vector2 a, Vector2 b, Vector2 c)
+    private static bool IsPointInsideTriangleXZ(Vector3 point, Vector3 a, Vector3 b, Vector3 c)
     {
-        float d1 = Sign(point, a, b);
-        float d2 = Sign(point, b, c);
-        float d3 = Sign(point, c, a);
-        bool hasNegative = d1 < 0f || d2 < 0f || d3 < 0f;
-        bool hasPositive = d1 > 0f || d2 > 0f || d3 > 0f;
-        return !(hasNegative && hasPositive);
+        const float epsilon = 0.0001f;
+        float denominator = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
+        if (Mathf.Abs(denominator) < epsilon)
+        {
+            return false;
+        }
+
+        float u = ((b.z - c.z) * (point.x - c.x) + (c.x - b.x) * (point.z - c.z)) / denominator;
+        float v = ((c.z - a.z) * (point.x - c.x) + (a.x - c.x) * (point.z - c.z)) / denominator;
+        float w = 1f - u - v;
+        return u >= -epsilon && v >= -epsilon && w >= -epsilon;
     }
 
-    private static float Sign(Vector2 p1, Vector2 p2, Vector2 p3)
+    private bool IsInsideWalkableVisualCoverage(Vector3 worldPoint)
     {
-        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+        return IsInsideWalkableArea(worldPoint);
     }
 
     private bool IsInsideWalkableVisualBounds(Vector3 worldPoint)
@@ -797,6 +841,41 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             && worldPoint.x <= bounds.max.x
             && worldPoint.z >= bounds.min.z
             && worldPoint.z <= bounds.max.z;
+    }
+
+    private bool ResolveWalkableBakeMesh()
+    {
+        if (walkableBakeMeshFilter != null && walkableBakeMesh != null)
+        {
+            return true;
+        }
+
+        if (walkableBakeMeshResolveAttempted)
+        {
+            return false;
+        }
+
+        walkableBakeMeshResolveAttempted = true;
+
+        Transform bakeMeshTransform = FindTransform(walkableBakeMeshName);
+        if (bakeMeshTransform == null && walkableBakeMeshName != "NavMeshWalkableBakeMesh_FromAlpha")
+        {
+            bakeMeshTransform = FindTransform("NavMeshWalkableBakeMesh_FromAlpha");
+        }
+
+        if (bakeMeshTransform == null)
+        {
+            return false;
+        }
+
+        walkableBakeMeshFilter = bakeMeshTransform.GetComponent<MeshFilter>();
+        if (walkableBakeMeshFilter == null)
+        {
+            return false;
+        }
+
+        walkableBakeMesh = walkableBakeMeshFilter.sharedMesh;
+        return walkableBakeMesh != null;
     }
 
     private bool ResolveWalkableArea()
@@ -818,6 +897,16 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             walkableArea = FindTransform(walkableAreaName);
         }
 
+        if (walkableArea == null && walkableAreaName != "NavMesh-walkable")
+        {
+            walkableArea = FindTransform("NavMesh-walkable");
+        }
+
+        if (walkableArea == null && walkableAreaName != "NavMesh-walkable (1)")
+        {
+            walkableArea = FindTransform("NavMesh-walkable (1)");
+        }
+
         if (walkableArea == null)
         {
             return false;
@@ -826,13 +915,6 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         if (walkableRenderer == null)
         {
             walkableRenderer = walkableArea.GetComponent<SpriteRenderer>();
-        }
-
-        if (walkableRenderer != null && walkableRenderer.sprite != walkableSprite)
-        {
-            walkableSprite = walkableRenderer.sprite;
-            walkableSpriteVertices = walkableSprite != null ? walkableSprite.vertices : null;
-            walkableSpriteTriangles = walkableSprite != null ? walkableSprite.triangles : null;
         }
 
         return walkableRenderer != null;

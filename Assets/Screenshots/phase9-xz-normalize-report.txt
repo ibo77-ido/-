@@ -1,16 +1,16 @@
 ﻿Phase9 XZ scene normalization report
-Time: 2026-06-18 11:19:01
+Time: 2026-06-18 12:00:04
 Scene: Assets/Phase9/Scenes/SampleScene.unity
 Road layer: 8
 Nav plane Y: 3.260
 Converted objects: 4
 Hidden guide renderers: 0
-Bake mesh vertices: 656
+Bake mesh vertices: 6336
 Build geometry: PhysicsColliders
-NavMesh vertices: 492
-NavMesh triangles: 236
-NavMesh Y range: 3.266 .. 3.266
-Nav vertices inside walkable sprite mesh: 492/492
+NavMesh vertices: 2467
+NavMesh triangles: 1163
+NavMesh Y range: 3.261 .. 3.261
+Nav vertices inside walkable sprite mesh: 2467/2467
 Outside probe leaks: 0
 Player reachable entry points: 4/4
 Result: PASS

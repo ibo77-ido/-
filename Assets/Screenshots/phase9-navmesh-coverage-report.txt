@@ -1,0 +1,20 @@
+[Phase9NavMeshCoverageValidator] Scene=SampleScene
+NavMesh vertices=2467 triangles=1163 navY=3.2609
+Origin (女主): (-0.9500, 3.2609, -2.3600)
+SamplePoints total=300
+
+---- Coverage Summary ----
+reachable=300
+unreachable=0
+unreachableCoordsCount=0
+
+---- Interaction Points ----
+Order-interact: PASS, reachable, distance=2.345 pos=(-3.1365, 3.2609, -1.5118)
+Shape-interact: PASS, reachable, distance=3.406 pos=(-1.8665, 3.2609, 0.9205)
+Glaze-interact: PASS, reachable, distance=4.230 pos=(-0.6600, 3.2609, 1.8600)
+Kiln-interact: PASS, reachable, distance=3.807 pos=(1.1660, 3.2609, 0.8044)
+
+---- Diagnostics ----
+
+---- Verdict ----
+Coverage=PASS Interaction=PASS Overall=PASS
