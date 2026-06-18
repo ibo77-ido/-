@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 [InitializeOnLoad]
 public static class Phase9XZSceneNormalizer
 {
-    private const string ScenePath = "Assets/Scenes/SampleScene.unity";
+    private const string ScenePath = "Assets/Phase9/Scenes/SampleScene.unity";
     private const string RequestPath = "Library/Phase9XZSceneNormalizer.request";
     private const string ReportPath = "Assets/Screenshots/phase9-xz-normalize-report.txt";
     private const string BakeMeshAssetPath = "Assets/Generated/NavMesh/NavMeshWalkableBakeMesh_FromSprite.asset";
@@ -74,13 +74,13 @@ public static class Phase9XZSceneNormalizer
 
             int convertedCount = NormalizeKnownSceneObjects(scene, navY);
             int hiddenGuideCount = HideEditorGuideVisuals(scene);
-            GameObject walkable = FindSceneObject(scene, "NavMesh-walkable (1)");
+            GameObject walkable = FindWalkableObject(scene);
             if (walkable == null)
             {
-                throw new InvalidOperationException("Missing NavMesh-walkable (1).");
+                throw new InvalidOperationException("Missing NavMesh-walkable.");
             }
 
-            NormalizeFlatSprite(walkable.transform, navY, true);
+            AlignWalkableToStaticLayer(scene, walkable, navY);
             EnsureWalkableVisualSource(walkable);
             Mesh walkableMesh = BuildMeshFromWalkableSprite(walkable);
             GameObject bakeMeshObject = EnsureBakeMeshObject(scene, walkable, walkableMesh, roadLayer);
@@ -172,7 +172,7 @@ public static class Phase9XZSceneNormalizer
             return staticLayer.transform.position.y;
         }
 
-        GameObject walkable = FindSceneObject(scene, "NavMesh-walkable (1)");
+        GameObject walkable = FindWalkableObject(scene);
         if (walkable != null && IsApproximatelyXZ(walkable.transform))
         {
             return walkable.transform.position.y;
@@ -327,6 +327,21 @@ public static class Phase9XZSceneNormalizer
         transform.position = new Vector3(oldPosition.x, forceNavY ? navY : oldPosition.z, oldPosition.y);
         transform.rotation = Quaternion.Euler(90f, 0f, oldZRotation);
         return true;
+    }
+
+    private static void AlignWalkableToStaticLayer(Scene scene, GameObject walkable, float navY)
+    {
+        GameObject staticLayer = FindSceneObject(scene, "静态层");
+        if (staticLayer == null)
+        {
+            NormalizeFlatSprite(walkable.transform, navY, true);
+            return;
+        }
+
+        Transform source = staticLayer.transform;
+        Transform target = walkable.transform;
+        target.SetPositionAndRotation(source.position, source.rotation);
+        target.localScale = source.lossyScale;
     }
 
     private static bool NormalizeActorOrMarker(Transform transform, float navY)
@@ -645,30 +660,20 @@ public static class Phase9XZSceneNormalizer
 
     private static NavMeshSurface EnsureNavMeshSurface(Scene scene, int roadLayer)
     {
-        NavMeshSurface surface = null;
-        foreach (GameObject obj in GetSceneObjects(scene))
+        GameObject root = FindSceneObject(scene, "Phase9_NavMeshSurface");
+        if (root == null)
         {
-            surface = obj.GetComponent<NavMeshSurface>();
-            if (surface != null)
-            {
-                break;
-            }
+            root = new GameObject("Phase9_NavMeshSurface");
+            SceneManager.MoveGameObjectToScene(root, scene);
         }
 
+        root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        root.transform.localScale = Vector3.one;
+
+        NavMeshSurface surface = root.GetComponent<NavMeshSurface>();
         if (surface == null)
         {
-            GameObject root = FindSceneObject(scene, "静态层");
-            if (root == null)
-            {
-                root = new GameObject("Phase9_NavMeshSurface");
-                SceneManager.MoveGameObjectToScene(root, scene);
-            }
-
-            surface = root.GetComponent<NavMeshSurface>();
-            if (surface == null)
-            {
-                surface = root.AddComponent<NavMeshSurface>();
-            }
+            surface = root.AddComponent<NavMeshSurface>();
         }
 
         surface.collectObjects = CollectObjects.All;
@@ -1033,6 +1038,17 @@ public static class Phase9XZSceneNormalizer
         }
 
         return null;
+    }
+
+    private static GameObject FindWalkableObject(Scene scene)
+    {
+        GameObject walkable = FindSceneObject(scene, "NavMesh-walkable");
+        if (walkable != null)
+        {
+            return walkable;
+        }
+
+        return FindSceneObject(scene, "NavMesh-walkable (1)");
     }
 
     private static IEnumerable<GameObject> GetSceneObjects(Scene scene)

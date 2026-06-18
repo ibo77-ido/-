@@ -8,7 +8,8 @@ public sealed class CloudFogDriftController : MonoBehaviour
     [SerializeField, Range(0f, 2f)] private float horizontalDrift = 0.35f;
     [SerializeField, Range(0f, 1f)] private float verticalFloat = 0.08f;
     [SerializeField, Range(0f, 3f)] private float driftSpeed = 0.28f;
-    [SerializeField, Range(0f, 0.5f)] private float alphaPulse = 0.08f;
+    [Range(0f, 1f)] public float cloudOpacity = 1f;
+    [Range(0f, 0.5f)] public float alphaPulse = 0.08f;
     [SerializeField] private bool includeRootRenderer = true;
 
     private Transform[] targets = new Transform[0];
@@ -24,12 +25,20 @@ public sealed class CloudFogDriftController : MonoBehaviour
     private void OnValidate()
     {
         CacheTargets();
-        Apply(Time.realtimeSinceStartup);
+        if (Application.isPlaying)
+        {
+            Apply(Time.time);
+        }
     }
 
     private void Update()
     {
-        Apply(Application.isPlaying ? Time.time : Time.realtimeSinceStartup);
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        Apply(Time.time);
     }
 
     public void CacheTargets()
@@ -157,7 +166,7 @@ public sealed class CloudFogDriftController : MonoBehaviour
             {
                 Color color = baseColors[i];
                 float alpha = 1f - alphaPulse + Mathf.Sin(time * speed * 0.9f + phase) * alphaPulse;
-                color.a = Mathf.Clamp01(baseColors[i].a * alpha);
+                color.a = Mathf.Clamp01(baseColors[i].a * cloudOpacity * alpha);
                 renderer.color = color;
             }
         }

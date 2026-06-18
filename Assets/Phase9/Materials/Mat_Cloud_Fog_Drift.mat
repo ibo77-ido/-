@@ -30,7 +30,7 @@ Material:
     m_Ints: []
     m_Floats:
     - PixelSnap: 0
-    - _AlphaPulse: 0.12
+    - _AlphaPulse: 0.115
     - _DistortionStrength: 0.045
     - _DriftSpeed: 0.45
     - _DriftStrength: 0.18

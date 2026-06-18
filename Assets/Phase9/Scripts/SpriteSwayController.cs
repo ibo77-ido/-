@@ -34,12 +34,20 @@ public sealed class SpriteSwayController : MonoBehaviour
     private void OnValidate()
     {
         CacheTargets();
-        Apply(Time.realtimeSinceStartup);
+        if (Application.isPlaying)
+        {
+            Apply(Time.time);
+        }
     }
 
     private void Update()
     {
-        Apply(Application.isPlaying ? Time.time : Time.realtimeSinceStartup);
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        Apply(Time.time);
     }
 
     private void OnDisable()
