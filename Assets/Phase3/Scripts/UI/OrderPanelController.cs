@@ -37,17 +37,17 @@ public class OrderPanelController : MonoBehaviour
     {
         if (order == null)
         {
-            SetText(orderNameText, "订单：未选择");
-            SetText(targetShapeText, "目标器型：-");
-            SetText(rewardSilverText, "银两奖励：0");
-            SetText(rewardReputationText, "声望奖励：0");
+            SetText(orderNameText, "未选择");
+            SetText(targetShapeText, "-");
+            SetText(rewardSilverText, "0");
+            SetText(rewardReputationText, "0");
             return;
         }
 
-        SetText(orderNameText, "订单：" + order.orderName);
-        SetText(targetShapeText, "目标器型：" + order.requiredShapeID);
-        SetText(rewardSilverText, "银两奖励：" + order.baseGold);
-        SetText(rewardReputationText, "声望奖励：" + order.baseReputation);
+        SetText(orderNameText, order.orderName);
+        SetText(targetShapeText, ResolveShapeName(order.requiredShapeID));
+        SetText(rewardSilverText, order.baseGold.ToString());
+        SetText(rewardReputationText, order.baseReputation.ToString());
     }
 
     public void Refresh()
@@ -65,6 +65,20 @@ public class OrderPanelController : MonoBehaviour
         if (targetText != null)
         {
             targetText.text = value;
+        }
+    }
+
+    // 器型 ID → 中文名，依据 ShapeType.cs 与 ShapeConfigSO.nameCN
+    private string ResolveShapeName(string shapeID)
+    {
+        switch (shapeID)
+        {
+            case "SHAPE_001": return "碗";
+            case "SHAPE_002": return "盘";
+            case "SHAPE_003": return "梅瓶";
+            case "SHAPE_004": return "玉壶春";
+            case "SHAPE_005": return "罐";
+            default: return shapeID;
         }
     }
 

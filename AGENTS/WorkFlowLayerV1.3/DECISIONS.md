@@ -1877,3 +1877,72 @@ Verdict: PASS
 - Kiln-interact: PASS distance=3.807
 
 Step 3 CLOSED.
+
+## Phase3 订单 UI 第一轮接入 — 替换策略
+
+Date: 2026-06-19
+
+Context: Phase3 Panel_Order 需要接入手工美术素材（订单面板 文字.png + 接单按钮.png），替换纯色背景和原型按钮。
+
+Options:
+
+Option A: 删除旧 Panel_Order 根对象，用新 Prefab 实例替换
+Pros: 干净的全新层级
+Cons: GameManager.panelOrder / orderPanelController 的 fileID 断链，需全部重新拖绑定，风险高
+
+Option B (用户修正 APPROVED): 保留旧 Panel_Order 根对象，只改造其子层级和 Image/Text/Button 组件，再从这个根对象保存为 OrderPanelArt.prefab
+Pros: 最大程度保住 GameManager.panelOrder 引用（fileID 不变）；OrderPanelController 字段引用不丢失
+Cons: 冗余子节点需手动删除；Btn_Accept 下 Text_Label 需清理
+
+Chosen Option: Option B (用户 APPROVED)
+
+Reason: 用户明确指出"保留场景里原来的 Panel_Order 根对象，只替换它的子层级和 Image/Text/Button"。验证确认：改造后 GM.panelOrder 仍指向同一 GameObject（引用完整），仅 orderPanelController 因 Prefab 连接丢失需重新绑定（已修复）。
+
+Impact:
+- Panel_Order 从 7 子节点 → 5 子节点（删 Text_OrderPanel/Text_OrderLabel + Btn_Accept/Text_Label）
+- Image 组件：sprite=美术图, color=white, raycastTarget=false
+- sizeDelta: (560,300) → (900,720)
+- Btn_Accept: sprite=接单按钮.png, childCount=1→0
+- ShowOrder: 移除标签拼接（"订单："+value → value）
+
+## Phase3 订单 UI — 按钮文字重字处理
+
+Date: 2026-06-19
+
+Context: 接单按钮.png 自带"接单"二字，但旧 Btn_Accept 下有 Text_Label 显示"接单"，两者叠加会重字。
+
+Options:
+
+Option A: 保留 Text_Label 但清空 text=""
+Pros: 节点保留
+Cons: 空节点无意义，浪费资源
+
+Option B: 删除 Text_Label (APPROVED)
+Pros: 彻底消除风险；Btn_Accept 下 childCount=0 干净
+Cons: 不可逆（已执行，可从 git 恢复）
+
+Chosen Option: Option B
+
+Impact: Btn_Accept.childCount 从 1→0，按钮图自带"接单"文字独立显示。
+
+## Phase3 订单 UI — SceneBuilder 不改决策
+
+Date: 2026-06-19
+
+Context: Phase3SceneBuilder.EnsureOrderPanelControls 只建 Btn_Accept，不建 4 个 Text、不挂 Controller、不绑字段（与 Firing/Result 不对称）。方案第一轮是否同步修复？
+
+Options:
+
+Option A: 同步修复 EnsureOrderPanelControls 使其与 Firing/Result 对称
+Pros: 完整性；Sync 后误删 Panel_Order 可重建
+Cons: 超出方案范围；引入额外代码变更
+
+Option B (APPROVED): 第一轮不改 SceneBuilder，前提 Btn_Accept 必须是 Panel_Order 直接子节点
+Pros: 最小改动；Btn_Accept 已满足直接子节点约束
+Cons: Sync 能力残缺（若 Panel_Order 被误删无法重建完整结构）
+
+Chosen Option: Option B
+
+Reason: 用户明确指出"第一轮不改 Phase3SceneBuilder 是可以的，前提是 Btn_Accept 必须是 Panel_Order 的直接子节点"。当前结构满足此约束。
+
+Phase3 订单 UI 第一轮接入 CLOSED.
