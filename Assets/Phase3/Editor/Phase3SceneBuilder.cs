@@ -208,6 +208,16 @@ public static class Phase3SceneBuilder
         Transform panel = canvasTf.Find("Panel_Result");
         if (panel == null) return created;
 
+        if (panel.Find("Img_ResultStage") != null)
+        {
+            if (panel.GetComponent<ResultPanelController>() == null)
+            {
+                panel.gameObject.AddComponent<ResultPanelController>();
+                created.Add("Component: ResultPanelController on Panel_Result");
+            }
+            return created;
+        }
+
         // Resize panel if needed (820x120 → 820x160)
         var panelRect = panel.GetComponent<RectTransform>();
         if (panelRect.sizeDelta.y < 150f)
