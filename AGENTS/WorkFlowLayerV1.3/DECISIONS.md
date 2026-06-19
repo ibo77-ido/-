@@ -1946,3 +1946,288 @@ Chosen Option: Option B
 Reason: 用户明确指出"第一轮不改 Phase3SceneBuilder 是可以的，前提是 Btn_Accept 必须是 Panel_Order 的直接子节点"。当前结构满足此约束。
 
 Phase3 订单 UI 第一轮接入 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task01 — isTemperatureDropping 即时切换 (风险 A)
+
+Date: 2026-06-19
+
+Context: 用户指出 FiringSystem 的 `isTemperatureDropping` 在 windValue 恢复时立即切换为 false，未来 UI 若做"余热惯性表现"会缺 decay window (0.2~0.5s 缓出)。
+
+Options:
+
+Option A: Task01 立即加 decay window (0.2~0.5s 缓出)
+Pros: 一步到位，未来 UI 表现更自然
+Cons: 超出 Task01 数值层范围；decay 属于表现层逻辑；当前无 UI 层需求支撑参数
+
+Option B (APPROVED): Task01 保持即时切换，Task05 实现温度条视频时再评估是否加 decay
+Pros: 数值层逻辑正确即可；表现层增强留给表现层 Task
+Cons: Task05 需记住此备忘
+
+Chosen Option: Option B
+
+Reason: 用户明确说"目前先不改，但 Task05 做温度条时要注意这个点"。数值层即时切换逻辑正确，decay window 是未来 UI 表现增强，不属于 Task01 职责。
+
+Impact: Task01 代码保持现状；Task05 任务文件追加备忘条目。
+
+---
+
+## Phase3 烧制 UI Task01 — lowWindTimer deltaTime 上限保护 (风险 B)
+
+Date: 2026-06-19
+
+Context: 用户建议 lowWindTimer 加 `Mathf.Max(0, lowWindTimer)` 保护或集中时间推进，防止暂停/timeScale=0/UI 异常时 timer 冻结在临界点。
+
+Options:
+
+Option A: Task01 立即加 `Mathf.Max(0, lowWindTimer)` 保护
+Pros: 防御性编程
+Cons: `Time.deltaTime` 在 Unity 中始终 >=0，timer 只会 += deltaTime，不会变负，此保护无实际作用
+
+Option B: Task01 加 deltaTime 上限保护 (如 `Mathf.Min(Time.deltaTime, 0.1f)`)
+Pros: 防止卡顿后单帧大跳变
+Cons: `lowWindTimer >= lowWindDurationThreshold` 用 `>=` 判断已容错；当前无此风险场景
+
+Option C (APPROVED): 保持现状，未来引入全局暂停机制时再统一收口
+Pros: 不过度工程；当前项目无 timeScale 操作
+Cons: 未来引入暂停时需记住收口
+
+Chosen Option: Option C
+
+Reason: 项目 grep 确认无 `timeScale` / `Time.timeScale` 操作；唯一"暂停"是 ResultPanelController.isRevealPaused（纯 UI 状态，不涉及 timeScale）；`Mathf.Max(0, timer)` 对只 += deltaTime 的 timer 无意义；deltaTime 大跳变场景不存在且 `>=` 判断已容错。用户建议"Task03/04 顺手收口"被评估为 UI 层不应跨界收口数值层时间推进。
+
+Impact: Task01 代码保持现状；未来引入全局暂停（timeScale=0）时需统一收口时间推进——这属于"引入暂停机制时的工作"。
+
+Phase3 烧制 UI Task01 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task02 — 场景操作方式 (UnityMCP vs 手动 YAML)
+
+Date: 2026-06-19
+
+Context: Task02 需要在 Phase3_Prototype 场景中搭建 ArtRoot_Firing 层级 + 创建 RenderTexture 资产 + 配置 VideoPlayer 组件 + 按钮换皮。执行方式有两种选择。
+
+Options:
+
+Option A: 直接编辑场景 .unity YAML 文件
+Pros: 不依赖 Unity Editor 运行；可纯文本 diff
+Cons: YAML fileID 计算复杂；VideoPlayer/RenderTexture 引用绑定易错；无法验证组件属性
+
+Option B (APPROVED): 通过 UnityMCP 在 Editor 直接操作 (manage_gameobject/manage_components/execute_code)
+Pros: 组件属性实时验证；RenderTexture 资产可代码创建；引用绑定通过 asset path 自动解析；每步可验证
+Cons: 需 Unity Editor 运行且 MCP 连接
+
+Chosen Option: Option B
+
+Reason: UnityMCP 已连接且功能完备；RenderTexture 资产创建 manage_asset 不支持但 execute_code 可补；组件属性设置后可立即读取验证；场景操作可视化。手动改 YAML 在 Unity 2022.3 中 fileID 和 meta 文件耦合复杂，易出错。
+
+Impact: Task02 全程通过 UnityMCP 执行，包括创建 RenderTexture（execute_code）、创建 GameObject（manage_gameobject）、配置组件（manage_components）、调整 sibling 顺序（execute_code SetAsFirstSibling）、验证层级（manage_scene get_hierarchy）。场景最终保存成功。
+
+---
+
+## Phase3 烧制 UI Task02 — uGUI sibling 顺序与 raycastTarget 补丁
+
+Date: 2026-06-19
+
+Context: Task02 初版完成后用户指出关键问题：Btn_Fuel/Btn_Stop/Btn_OpenKiln 在 ArtRoot_Firing 前面（sibling 顺序），而 Unity uGUI 后渲染的 sibling 画在上层。ArtRoot_Firing 的全屏 StaticFallback_Image/FiringVideo_RawImage 会盖住按钮并拦截点击。
+
+Options:
+
+Option A: 保持现状，在 Controller 中通过代码动态调整层级
+Pros: 不改场景
+Cons: 治标不治本；Controller 增加无关逻辑；场景层级语义不清
+
+Option B (APPROVED): 场景层补丁 — ArtRoot_Firing SetAsFirstSibling + 视觉层 raycastTarget=false
+Pros: 场景层级语义清晰；视觉层不拦截点击；Controller 无需处理层级；符合 uGUI 最佳实践
+Cons: 需额外场景操作
+
+Chosen Option: Option B
+
+Reason: uGUI 层级问题应在场景层解决，不应推给 Controller。ArtRoot_Firing 作为背景视觉层应在最底层（sibling index=0）；StaticFallback_Image/FiringVideo_RawImage/TemperatureVideo_RawImage 是纯视觉元素不应拦截点击（raycastTarget=false）；WindDoor_HoverArea 因 Task04 用 RectTransformUtility.RectangleContainsScreenPoint 主动检测而非 EventSystem 射线，raycastTarget=false。
+
+Impact:
+- ArtRoot_Firing 移到 Panel_Firing 下 sibling index=0
+- StaticFallback_Image / FiringVideo_RawImage / TemperatureVideo_RawImage 的 raycastTarget=false
+- WindDoor_HoverArea 的 raycastTarget=false
+- WindDoor_Image 保留 raycastTarget=true（默认值，风门可交互）
+- 按钮和风门在 ArtRoot_Firing 上层，点击不被遮挡
+
+Phase3 烧制 UI Task02 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task02 修复 — Panel_Firing Image 遮挡其他面板
+
+Date: 2026-06-19
+
+Context: Task02 将 Panel_Firing RectTransform 从小面板（560x300）改为全屏 stretch，但未同步处理 Panel_Firing 自身的 Image 组件（半透明深红背景 alpha=0.86）。编辑器模式下所有面板 activeSelf=true，Panel_Firing 全屏 Image 遮挡了 Panel_Order/Shape/Glaze/Result 等所有其他面板，用户看到"游戏开始后全部面板都消失了"。
+
+Options:
+
+Option A: 恢复 Panel_Firing 原始小面板尺寸，ArtRoot_Firing 不全屏
+Pros: 完全恢复原状
+Cons: 违背 Task02 目标（烧制面板应全屏）；ArtRoot_Firing 子节点无法铺满
+
+Option B (APPROVED): Panel_Firing 保持全屏 stretch，但 Image alpha=0（透明）+ raycastTarget=false
+Pros: ArtRoot_Firing 子节点可全屏铺满；Panel_Firing 透明不遮挡其他面板；烧制面板背景由 StaticFallback_Image 提供
+Cons: Panel_Firing 自身 Image 组件变成无用（可后续移除）
+
+Chosen Option: Option B
+
+Reason: Panel_Firing 全屏是 Task02 的设计目标（参考图是整屏 UI）。遮挡问题根因是 Image 背景未透明化，不是全屏本身的问题。烧制面板的视觉背景已由 ArtRoot_Firing/StaticFallback_Image 提供，Panel_Firing 自身的 Image 不再需要。
+
+Impact:
+- Panel_Firing Image.m_Color.a = 0（透明）
+- Panel_Firing Image.m_RaycastTarget = false
+- 其他面板恢复可见
+- 用户新增规则：只允许改变烧制面板功能，其余部分全部不允许改变（已记入 memory/feedback_firing_ui_boundary.md）
+
+Phase3 烧制 UI Task02 修复 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task03 — FiringPanelController 状态机架构决策
+
+Date: 2026-06-19
+
+Context: Task03 扩展 FiringPanelController 时，用户提出 4 点关键修正：1) 缺 UnityEngine.Video 编译问题；2) ResetPanel 不应用哨兵值 currentState=(-1)；3) Refresh 不应承担状态切换职责；4) 风门字段应本轮一起绑定。
+
+Options:
+
+Option A: 按任务文件原设计（哨兵值 + Refresh 参与状态切换 + 风门字段留到 Task04）
+Pros: 与任务文件一致
+Cons: 哨兵值污染状态机语义；Refresh 职责混乱；Task04 无法直接接风门
+
+Option B (APPROVED): 按用户 4 点修正重新设计
+- using UnityEngine.Video 解决编译
+- EnterState(state, force=false) force 参数替代哨兵值
+- Refresh 只做连续刷新，状态切换由 EnterState 和按钮回调驱动
+- 风门字段本轮一起绑定（windDoorImage/windDoorFrames[9]/windDoorHoverArea）
+Pros: 状态机语义干净；职责分离清晰；Task04 可直接接手
+Cons: 需重新设计 EnterState 签名
+
+Chosen Option: Option B
+
+Reason: 用户修正点准确——哨兵值会让状态机语义变脏；Refresh 承担状态切换会导致帧刷新和状态切换互相缠绕；风门字段留到后面会断节。force 参数是更稳的重置方式。
+
+Impact:
+- FiringPanelController.cs 重写
+- 13 个新字段通过 UnityMCP 反射设置并序列化
+- EnterState 为唯一状态入口
+- Refresh 职责纯化为连续刷新
+- 风门 9 帧 Sprite 数组已绑定，Task04 可直接实现滚轮逻辑
+
+Phase3 烧制 UI Task03 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task04 — 起势视频潜在重播风险（低风险，不阻塞）
+
+Date: 2026-06-19
+
+Context: Task04 完成后用户指出一个低风险点——Refresh() 中 IsFiring false→true 变更会触发 EnterState(FiringActive, true)，而 ResetPanel() 也会强制进入同一状态。模块刚进入时起势视频可能被再触发一次，表现上像轻微重播。
+
+Options:
+
+Option A: Task04 立即收紧进入条件
+Pros: 彻底消除潜在重播
+Cons: 当前未观察到实际回跳；过早优化可能引入新问题
+
+Option B (APPROVED): 保持现状，运行时若观察到起势 clip 回跳再收紧
+Pros: 不过早优化；当前代码逻辑正确
+Cons: 可能存在轻微视觉重播
+
+Chosen Option: Option B
+
+Reason: 用户明确说"如果你实际跑起来没感觉，这个可以先不动；要是后面看到起势 clip 有一小下回跳，再把'外部 IsFiring 变更'的进入条件收紧一点就行"。这是观察驱动的优化策略，符合不过早工程原则。
+
+Impact: Task04 代码保持现状；风险记录到 STATE.md 和 DECISIONS.md；若 Task05 或运行时测试发现回跳，再收紧 Refresh() 中的 IsFiring 进入条件。
+
+Phase3 烧制 UI Task04 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task05 — 余热 decay window 第一版不做
+
+Date: 2026-06-19
+
+Context: Task05 实现温度条视频驱动时，Task01 风险 A 备忘指出 IsTemperatureDropping 在 windValue 恢复时立即切换为 false，温度条视频倒放→正向会有视觉突变。需评估是否在 Task05 加 decay window。
+
+Options:
+
+Option A: Task05 加 0.2~0.5s decay window（Controller 表现层本地计时器）
+Pros: 视觉过渡自然
+Cons: 当前未观察到实际突变；增加复杂度；decay 参数需调试
+
+Option B (APPROVED): 第一版不做 decay，保持与 FiringSystem 即时切换一致
+Pros: 简单；逻辑清晰；与数值层行为一致
+Cons: 可能存在视觉突变
+
+Chosen Option: Option B
+
+Reason: 符合 Task01 风险 A 的处理策略（"目前先不改，Task05 做温度条时要注意这个点"）。第一版优先保证功能正确，视觉优化观察后再加。decay 属于表现层增强，不阻塞核心流程。
+
+Impact: Task05 代码保持现状；若运行时测试发现倒放→正向有明显突变，再加 decay window（Controller 表现层本地计时器，不改 FiringSystem 数值层）。
+
+Phase3 烧制 UI Task05 CLOSED.
+
+---
+
+## Phase3 烧制 UI Task06 — ArtRoot_Firing 检测分支
+
+Date: 2026-06-19
+
+Context: Task06 修改 EnsureFiringPanelControls()，需在美术面板已接入时跳过旧占位控件创建，避免 Builder 污染 Panel_Firing。
+
+Options:
+
+Option A: 删除旧占位控件创建逻辑，只保留美术模式
+Pros: 代码更简洁
+Cons: 若 ArtRoot_Firing 被误删，Builder 无法回退到旧逻辑重建占位控件，丧失自动修复能力
+
+Option B (APPROVED): 保留旧逻辑，在方法开头加 ArtRoot_Firing 检测分支
+Pros: 美术模式跳过旧控件；旧逻辑保留作为回退；与方案 §Phase3SceneBuilder 同步策略 一致
+Cons: 代码量略多
+
+Chosen Option: Option B
+
+Reason: 方案 §Phase3SceneBuilder 同步策略 明确要求"检测到美术版节点后跳过旧占位控件创建"，且保留 else 分支的旧逻辑作为回退。这符合"不破坏 Phase3 原型场景的自动修复能力"的设计目标。
+
+Impact:
+- EnsureFiringPanelControls() 方法开头加 ArtRoot_Firing 检测分支（第 133-143 行）
+- 美术模式：仅确保 FiringPanelController 存在，return
+- 无 ArtRoot_Firing：走原有逻辑（创建 Text_Zone/Text_FireScore/Slider_Wind/Btn_*）
+- 其他面板 Builder 方法不受影响
+
+Phase3 烧制 UI Task06 CLOSED.
+
+---
+
+## Phase3 烧制 UI 接入工作流 — 整体闭环
+
+Date: 2026-06-19
+
+Context: 烧制 UI 接入 6 个 Task 全部完成，记录整体闭环决策。
+
+关键设计决策汇总:
+1. 温度条视频按视频自身帧率线性推进，不绑 CurrentTemperature 数值
+2. 次品判定靠 ForceUnderfiredOpen() 压温到 0 → GetFireScore()=0 → 天然欠烧，不改 ResultSystem
+3. 风门 9 帧序列 + 鼠标滚轮（1/8 步进），暴露给玩家操作
+4. 主画面两段式：火焰动画.mp4 起势 → 循环.mp4 无缝衔接
+5. 场景操作通过 UnityMCP 在 Editor 执行（非手动改 YAML）
+6. ArtRoot_Firing 在 Panel_Firing 下 sibling index=0，视觉层 raycastTarget=false
+7. EnterState 作为唯一状态入口，force 参数替代哨兵值
+8. Refresh 职责分离：只做连续刷新，不做状态切换
+9. 余热 decay window 第一版不做（观察后再加）
+10. 起势视频潜在重播第一版不收紧（观察后再处理）
+
+待运行时验证:
+- 起势→循环视频无缝衔接
+- 停火→关窑动画→打开按钮流程
+- 风门滚轮 9 档切换
+- 低风门 3s 倒放→强制开窑次品
+- 风门/温度条位置对照参考图精调
+
+Phase3 烧制 UI 接入工作流 COMPLETE.

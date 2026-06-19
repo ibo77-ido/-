@@ -5,18 +5,25 @@ public class FiringSystem : MonoBehaviour
 {
     [SerializeField] private float currentTemperature;
     [SerializeField] private float temperatureRisePerSecond = 50f;
-    [SerializeField] private float windValue = 1f;
+    [SerializeField] private float windValue = 0f;
     [SerializeField] private float fuelBoost = 200f;
     [SerializeField] private bool isFiring = true;
     [SerializeField] private FireConfigSO fireConfig;
+    [SerializeField] private float lowWindThreshold = 0.3f;
+    [SerializeField] private float lowWindDurationThreshold = 3f;
+    [SerializeField] private float temperatureDropPerSecond = 30f;
 
     private bool isWindowOpen;
+    private float lowWindTimer;
+    private bool isTemperatureDropping;
 
     public enum FireZone { Underfired, Normal, Overfired }
 
     public float CurrentTemperature { get { return currentTemperature; } }
     public bool IsFiring { get { return isFiring; } }
     public bool IsWindowOpen { get { return isWindowOpen; } }
+    public bool IsTemperatureDropping { get { return isTemperatureDropping; } }
+    public float WindValue { get { return windValue; } }
 
     public void SetWindValue(float value) { windValue = Mathf.Clamp01(value); }
     public void AddFuel() { currentTemperature += fuelBoost; }
@@ -26,6 +33,15 @@ public class FiringSystem : MonoBehaviour
     {
         isFiring = false;
         isWindowOpen = true;
+    }
+
+    // 温度条视频倒放到 0 帧时调用，强制走欠烧次品分支
+    public void ForceUnderfiredOpen()
+    {
+        currentTemperature = 0f;
+        isTemperatureDropping = false;
+        lowWindTimer = 0f;
+        StopFiring();
     }
 
     public FireZone GetCurrentZone()
@@ -78,7 +94,9 @@ public class FiringSystem : MonoBehaviour
         currentTemperature = 0f;
         isFiring = false;
         isWindowOpen = false;
-        windValue = 1f;
+        windValue = 0f;
+        lowWindTimer = 0f;
+        isTemperatureDropping = false;
     }
 
     public void StartFiring()
@@ -86,12 +104,42 @@ public class FiringSystem : MonoBehaviour
         currentTemperature = 0f;
         isFiring = true;
         isWindowOpen = false;
-        windValue = 1f;
+        windValue = 0f;
+        lowWindTimer = 0f;
+        isTemperatureDropping = false;
+    }
+
+    public void BeginFiringByWind()
+    {
+        if (isFiring) return;
+        if (windValue <= 0f) return;
+        isFiring = true;
+        isWindowOpen = false;
+        lowWindTimer = 0f;
+        isTemperatureDropping = false;
     }
 
     private void Update()
     {
         if (!isFiring) return;
+
+        if (windValue < lowWindThreshold)
+        {
+            lowWindTimer += Time.deltaTime;
+            if (lowWindTimer >= lowWindDurationThreshold)
+            {
+                isTemperatureDropping = true;
+                currentTemperature -= temperatureDropPerSecond * Time.deltaTime;
+                currentTemperature = Mathf.Max(0f, currentTemperature);
+                return;
+            }
+        }
+        else
+        {
+            lowWindTimer = 0f;
+            isTemperatureDropping = false;
+        }
+
         currentTemperature += temperatureRisePerSecond * windValue * Time.deltaTime;
     }
 }

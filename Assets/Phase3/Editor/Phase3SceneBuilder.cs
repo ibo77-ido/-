@@ -130,6 +130,19 @@ public static class Phase3SceneBuilder
         Transform panel = canvasTf.Find("Panel_Firing");
         if (panel == null) return created;
 
+        // ─── 美术面板检测 ─────────────────────────────
+        // 若已接入美术版烧制面板（存在 ArtRoot_Firing），跳过旧占位控件创建
+        if (panel.Find("ArtRoot_Firing") != null)
+        {
+            if (panel.GetComponent<FiringPanelController>() == null)
+            {
+                panel.gameObject.AddComponent<FiringPanelController>();
+                created.Add("Component: FiringPanelController on Panel_Firing (art mode)");
+            }
+            return created;
+        }
+        // ─── 以下为旧占位控件创建逻辑 ─────────────────
+
         // Resize panel if needed (820x120 → 820x160)
         var panelRect = panel.GetComponent<RectTransform>();
         if (panelRect.sizeDelta.y < 150f)

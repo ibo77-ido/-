@@ -119,8 +119,7 @@ public class GameManager : MonoBehaviour
     public void EnterFiringModule()
     {
         Debug.Log("[GameManager] EnterFiringModule");
-        if (firingSystem != null) firingSystem.StartFiring();
-        if (firingPanelController != null) firingPanelController.ResetPanel();
+        if (firingSystem != null) firingSystem.ResetFiring();
         SetState(GameState.Firing);
     }
 
@@ -172,7 +171,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (firingSystem != null) firingSystem.StartFiring();
+        if (firingSystem != null) firingSystem.ResetFiring();
         SetState(GameState.Firing);
     }
 

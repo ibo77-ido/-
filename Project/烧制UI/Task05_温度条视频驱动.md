@@ -199,6 +199,17 @@ NONE
 - `hasTriggeredForceOpen` 需在 ResetPanel 时重置，否则重复进入烧制无法再次触发次品分支
 - 倒放速度和正向速度默认都为 1（progress/秒），实际视频时长不同会导致视觉速度差异，需实测调整
 
+## 备忘：余热惯性 decay window（来自 Task01 风险 A）
+
+Task01 中 `FiringSystem.IsTemperatureDropping` 在 windValue 恢复 >=0.3 时**立即切换为 false**，无缓出。
+
+本 Task 实现温度条视频驱动时需评估：
+- 若温度条视频在 `IsTemperatureDropping` false 后立即停止倒放、恢复正向，视觉上会有"突变"
+- 如需"余热惯性"表现（0.2~0.5s decay window 缓出），应在 Controller 表现层加一个本地 decay 计时器，不修改 FiringSystem 数值层
+- decay 期间温度条视频继续倒放（或减速倒放），decay 结束后才恢复正向
+
+**第一版可不做 decay**，保持与 FiringSystem 即时切换一致；若实测视觉突变明显，再加 decay window。
+
 ## Next Recommended Task
 
 Task06_Phase3SceneBuilder检测分支

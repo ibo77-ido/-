@@ -31,8 +31,11 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     [Header("Runtime UI")]
     [SerializeField] private GameObject gameplayCanvasRoot;
     [SerializeField] private GameplayCanvasGroup gameplayCanvasGroup;
+    [SerializeField] private Vector2 bridgePanelReferenceSize = new Vector2(1920f, 1080f);
+    [SerializeField, Min(0.1f)] private float bridgePanelScaleMultiplier = 2f;
 
     private readonly List<EntryPoint> entryPoints = new List<EntryPoint>();
+    private readonly Dictionary<RectTransform, BridgePanelLayout> bridgePanelLayouts = new Dictionary<RectTransform, BridgePanelLayout>();
 
     private Transform player;
     private Transform walkableArea;
@@ -53,6 +56,12 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     private bool walkableResolveAttempted;
     private bool walkableBakeMeshResolveAttempted;
     private bool navMeshPlaneResolved;
+
+    private struct BridgePanelLayout
+    {
+        public Vector2 Size;
+        public Vector3 Scale;
+    }
 
     private sealed class EntryPoint
     {
@@ -204,6 +213,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         EnsureEventSystem();
         BindCanvasGroupReferences();
         HideBridgeOnlyObjects();
+        bridgePanelLayouts.Clear();
         CenterGameplayPanels();
         HideGameplayUI();
 
@@ -536,13 +546,75 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
                 || target.name == "Panel_Result")
             {
                 RectTransform rect = rects[i];
-                rect.anchorMin = new Vector2(0.5f, 0.5f);
-                rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = Vector2.zero;
-                rect.localScale = Vector3.one;
+                ApplyBridgePanelLayout(rect);
             }
         }
+    }
+
+    private void ApplyBridgePanelLayout(RectTransform rect)
+    {
+        if (rect == null)
+        {
+            return;
+        }
+
+        BridgePanelLayout layout;
+        if (!bridgePanelLayouts.TryGetValue(rect, out layout))
+        {
+            layout = CaptureBridgePanelLayout(rect);
+            bridgePanelLayouts.Add(rect, layout);
+        }
+
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = layout.Size;
+        rect.localScale = new Vector3(
+            layout.Scale.x * bridgePanelScaleMultiplier,
+            layout.Scale.y * bridgePanelScaleMultiplier,
+            layout.Scale.z);
+    }
+
+    private BridgePanelLayout CaptureBridgePanelLayout(RectTransform rect)
+    {
+        Vector2 size = rect.rect.size;
+        if (size.x <= 0f || size.y <= 0f)
+        {
+            size = rect.sizeDelta;
+        }
+        if (size.x <= 0f || size.y <= 0f)
+        {
+            size = bridgePanelReferenceSize;
+        }
+        if (size.x <= 0f)
+        {
+            size.x = 1920f;
+        }
+        if (size.y <= 0f)
+        {
+            size.y = 1080f;
+        }
+
+        Vector3 scale = rect.localScale;
+        if (scale.x <= 0f)
+        {
+            scale.x = 1f;
+        }
+        if (scale.y <= 0f)
+        {
+            scale.y = scale.x;
+        }
+        if (scale.z <= 0f)
+        {
+            scale.z = 1f;
+        }
+
+        return new BridgePanelLayout
+        {
+            Size = size,
+            Scale = scale
+        };
     }
 
     private static void RemoveDuplicateEventSystems(Scene scene)

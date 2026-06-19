@@ -11,6 +11,7 @@ public class GlazeSystem : MonoBehaviour
     public float TargetCopper { get; private set; }
     public float TargetIron { get; private set; }
     public float TargetCobalt { get; private set; }
+    public float TargetTemperatureMax { get; private set; }
     public bool HasTarget { get; private set; }
 
     public GlazeScoreResult LastResult { get; private set; }
@@ -25,6 +26,7 @@ public class GlazeSystem : MonoBehaviour
     public bool LoadTargetFromCurrentOrder()
     {
         HasTarget = false;
+        TargetTemperatureMax = 0f;
 
         if (orderManager == null) return false;
 
@@ -39,6 +41,7 @@ public class GlazeSystem : MonoBehaviour
         TargetCopper = currentTarget.copper;
         TargetIron = currentTarget.iron;
         TargetCobalt = currentTarget.cobalt;
+        TargetTemperatureMax = currentTarget.temperatureMax;
         HasTarget = true;
         return true;
     }

@@ -318,12 +318,22 @@ public class GameplayBridgeManager : MonoBehaviour, IInteractionEntryHandler, IG
 
     private static void CenterGameplayPanel(RectTransform panelRect)
     {
+        if (panelRect.name == "Panel_Firing")
+        {
+            FiringPanelController firingPanel = panelRect.GetComponent<FiringPanelController>();
+            if (firingPanel != null)
+            {
+                firingPanel.CenterBridgeWindowOnly();
+                return;
+            }
+        }
+
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
         panelRect.localScale = Vector3.one;
-    }
+	}
 
     private void DisablePhase3Cameras(Scene scene)
     {
