@@ -4,12 +4,12 @@ using UnityEngine.AI;
 public class MovementController : MonoBehaviour
 {
     [Header("Plane Mapping")]
-    [SerializeField] private bool mapNavMeshZToTransformY;
-    [SerializeField] private float mappedNavMeshY;
-    [SerializeField] private float currentPositionSampleDistance = 2f;
-    [SerializeField] private float destinationSampleDistance = 3f;
-    [SerializeField] private float fallbackSpeed = 2.5f;
-    [SerializeField] private float fallbackStoppingDistance = 0.08f;
+    public bool mapNavMeshZToTransformY;
+    public float mappedNavMeshY;
+    public float currentPositionSampleDistance = 2f;
+    public float destinationSampleDistance = 3f;
+    public float fallbackSpeed = 2.5f;
+    public float fallbackStoppingDistance = 0.08f;
 
     private NavMeshAgent navMeshAgent;
     private NavMeshPath manualPath;
@@ -199,6 +199,23 @@ public class MovementController : MonoBehaviour
     {
         currentPositionSampleDistance = Mathf.Max(0.01f, currentPositionDistance);
         destinationSampleDistance = Mathf.Max(0.01f, destinationDistance);
+    }
+
+    public Vector3 GetNavMeshCenterPoint()
+    {
+        return transform.position;
+    }
+
+    public bool IsCenterOnNavMesh()
+    {
+        return IsCenterOnNavMesh(0.05f);
+    }
+
+    public bool IsCenterOnNavMesh(float sampleDistance)
+    {
+        NavMeshHit hit;
+        Vector3 center = mapNavMeshZToTransformY ? ToPathPosition(GetNavMeshCenterPoint()) : GetNavMeshCenterPoint();
+        return NavMesh.SamplePosition(center, out hit, Mathf.Max(0.001f, sampleDistance), NavMesh.AllAreas);
     }
 
     public void SetMappedNavMeshY(float navMeshY)

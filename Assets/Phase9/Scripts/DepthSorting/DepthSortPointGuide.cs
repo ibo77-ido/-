@@ -6,6 +6,7 @@ public sealed class DepthSortPointGuide : MonoBehaviour
 {
     [SerializeField] private Transform owner;
     [SerializeField] private float halfWidth = 1f;
+    [SerializeField] private bool showGuide;
     [SerializeField] private Color lineColor = new Color(1f, 0.72f, 0.12f, 1f);
     [SerializeField] private Color pointColor = new Color(0.1f, 0.8f, 1f, 1f);
 
@@ -27,6 +28,11 @@ public sealed class DepthSortPointGuide : MonoBehaviour
 
     private void DrawGuide(bool selected)
     {
+        if (!showGuide)
+        {
+            return;
+        }
+
         float width = Mathf.Max(0.25f, halfWidth);
         Vector3 center = transform.position;
         Vector3 left = center + Vector3.left * width;

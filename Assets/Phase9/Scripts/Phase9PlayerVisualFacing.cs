@@ -11,12 +11,6 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         Right
     }
 
-    private enum FacingMode
-    {
-        FrontBackOnly,
-        FourDirection
-    }
-
     [Header("Static Facing Fix")]
     [SerializeField] private Transform visualRoot;
     [SerializeField] private Vector3 desiredLocalEuler;
@@ -27,28 +21,33 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
     [SerializeField] private bool useMoveFacing = true;
     [SerializeField] private Transform movementRoot;
     [SerializeField] private SpriteRenderer targetRenderer;
-    [SerializeField] private FacingMode facingMode = FacingMode.FrontBackOnly;
+    [SerializeField] private MovementController movementController;
+    [SerializeField] private bool useTransformYAsForwardAxis = true;
+    [SerializeField] private bool preferPathForwardDirection = true;
     [SerializeField, Min(0.0001f)] private float moveThreshold = 0.001f;
     [SerializeField, Min(0.01f)] private float frameRate = 8f;
     [SerializeField] private FacingDirection initialDirection = FacingDirection.Front;
+    [SerializeField, Min(0f)] private float referenceSpriteHeight;
 
     [Header("Idle Sprites")]
     [SerializeField] private Sprite idleFront;
     [SerializeField] private Sprite idleBack;
-    [SerializeField] private Sprite idleLeft;
-    [SerializeField] private Sprite idleRight;
 
     [Header("Walk Sprites")]
     [SerializeField] private Sprite[] walkFront = new Sprite[0];
     [SerializeField] private Sprite[] walkBack = new Sprite[0];
-    [SerializeField] private Sprite[] walkLeft = new Sprite[0];
-    [SerializeField] private Sprite[] walkRight = new Sprite[0];
 
     private Vector3 previousRootPosition;
     private FacingDirection currentDirection;
     private int currentFrame;
     private float frameTimer;
     private bool wasMoving;
+    private Vector3 baseVisualScale = Vector3.one;
+    private float resolvedReferenceSpriteHeight;
+    private System.Reflection.FieldInfo pathCornersField;
+    private System.Reflection.FieldInfo currentCornerIndexField;
+    private System.Reflection.FieldInfo hasDestinationField;
+    private System.Reflection.FieldInfo mapNavMeshZToTransformYField;
 
     private void Awake()
     {
@@ -56,6 +55,8 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         ResolveRuntimeReferences();
         previousRootPosition = movementRoot != null ? movementRoot.position : transform.position;
         currentDirection = initialDirection;
+        baseVisualScale = visualRoot != null ? visualRoot.localScale : Vector3.one;
+        ResolveReferenceSpriteHeight();
         ApplyRootFacing();
         ApplyFacing();
         ApplySpriteFacing();
@@ -112,6 +113,11 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
                 targetRenderer = GetComponentInChildren<SpriteRenderer>(true);
             }
         }
+
+        if (movementController == null && movementRoot != null)
+        {
+            movementController = movementRoot.GetComponent<MovementController>();
+        }
     }
 
     private void ApplyFacing()
@@ -157,7 +163,12 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         Vector3 delta = currentPosition - previousRootPosition;
         previousRootPosition = currentPosition;
 
-        Vector2 planarDelta = new Vector2(delta.x, delta.z);
+        Vector2 planarDelta;
+        if (!TryGetPathForwardDelta(out planarDelta))
+        {
+            planarDelta = GetMovementPlaneDelta(delta);
+        }
+
         bool isMoving = planarDelta.sqrMagnitude > moveThreshold * moveThreshold;
         if (isMoving)
         {
@@ -179,23 +190,135 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
 
     private void SetDirectionFromDelta(Vector2 planarDelta)
     {
-        if (facingMode == FacingMode.FrontBackOnly)
+        if (Mathf.Abs(planarDelta.y) > moveThreshold)
         {
-            if (Mathf.Abs(planarDelta.y) > moveThreshold)
+            currentDirection = planarDelta.y >= 0f ? FacingDirection.Back : FacingDirection.Front;
+        }
+    }
+
+    private Vector2 GetMovementPlaneDelta(Vector3 worldDelta)
+    {
+        if (ShouldUseTransformYAsForwardAxis())
+        {
+            return new Vector2(worldDelta.x, worldDelta.y);
+        }
+
+        return new Vector2(worldDelta.x, worldDelta.z);
+    }
+
+    private bool TryGetPathForwardDelta(out Vector2 planarDelta)
+    {
+        planarDelta = Vector2.zero;
+
+        if (!preferPathForwardDirection || movementController == null || movementRoot == null)
+        {
+            return false;
+        }
+
+        EnsureMovementReflection();
+        if (pathCornersField == null || currentCornerIndexField == null || hasDestinationField == null)
+        {
+            return false;
+        }
+
+        bool hasDestination = (bool)hasDestinationField.GetValue(movementController);
+        if (!hasDestination)
+        {
+            return false;
+        }
+
+        Vector3[] pathCorners = pathCornersField.GetValue(movementController) as Vector3[];
+        if (pathCorners == null || pathCorners.Length == 0)
+        {
+            return false;
+        }
+
+        int currentCornerIndex = (int)currentCornerIndexField.GetValue(movementController);
+        if (currentCornerIndex < 0 || currentCornerIndex >= pathCorners.Length)
+        {
+            return false;
+        }
+
+        Vector2 currentPoint = GetMovementPlanePoint(movementRoot.position);
+        for (int i = currentCornerIndex; i < pathCorners.Length; i++)
+        {
+            Vector2 candidateDelta = GetPathPlanePoint(pathCorners[i]) - currentPoint;
+            if (candidateDelta.sqrMagnitude <= moveThreshold * moveThreshold)
             {
-                currentDirection = planarDelta.y >= 0f ? FacingDirection.Back : FacingDirection.Front;
+                continue;
             }
 
-            return;
+            if (TryUseFrontBackDelta(candidateDelta, out planarDelta))
+            {
+                return true;
+            }
         }
 
-        if (Mathf.Abs(planarDelta.x) >= Mathf.Abs(planarDelta.y))
+        return false;
+    }
+
+    private bool TryUseFrontBackDelta(Vector2 candidateDelta, out Vector2 planarDelta)
+    {
+        planarDelta = Vector2.zero;
+        if (Mathf.Abs(candidateDelta.y) <= moveThreshold)
         {
-            currentDirection = planarDelta.x >= 0f ? FacingDirection.Right : FacingDirection.Left;
+            return false;
+        }
+
+        planarDelta = candidateDelta;
+        return true;
+    }
+
+    private Vector2 GetMovementPlanePoint(Vector3 worldPoint)
+    {
+        if (ShouldUseTransformYAsForwardAxis())
+        {
+            return new Vector2(worldPoint.x, worldPoint.y);
+        }
+
+        return new Vector2(worldPoint.x, worldPoint.z);
+    }
+
+    private Vector2 GetPathPlanePoint(Vector3 pathPoint)
+    {
+        if (ShouldUseTransformYAsForwardAxis())
+        {
+            return new Vector2(pathPoint.x, pathPoint.z);
+        }
+
+        return new Vector2(pathPoint.x, pathPoint.z);
+    }
+
+    private bool ShouldUseTransformYAsForwardAxis()
+    {
+        EnsureMovementReflection();
+        if (movementController != null && mapNavMeshZToTransformYField != null)
+        {
+            object value = mapNavMeshZToTransformYField.GetValue(movementController);
+            if (value is bool)
+            {
+                return (bool)value;
+            }
+        }
+
+        return useTransformYAsForwardAxis;
+    }
+
+    private void EnsureMovementReflection()
+    {
+        if (pathCornersField != null)
+        {
             return;
         }
 
-        currentDirection = planarDelta.y >= 0f ? FacingDirection.Back : FacingDirection.Front;
+        System.Type type = typeof(MovementController);
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.Public
+            | System.Reflection.BindingFlags.NonPublic;
+        pathCornersField = type.GetField("pathCorners", flags);
+        currentCornerIndexField = type.GetField("currentCornerIndex", flags);
+        hasDestinationField = type.GetField("hasDestination", flags);
+        mapNavMeshZToTransformYField = type.GetField("mapNavMeshZToTransformY", flags);
     }
 
     private void AdvanceWalkFrame()
@@ -229,7 +352,7 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         int frame = Mathf.Clamp(currentFrame, 0, frames.Length - 1);
         if (frames[frame] != null)
         {
-            targetRenderer.sprite = frames[frame];
+            SetRendererSprite(frames[frame]);
         }
     }
 
@@ -243,8 +366,84 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         Sprite sprite = GetIdleSprite(currentDirection);
         if (sprite != null)
         {
-            targetRenderer.sprite = sprite;
+            SetRendererSprite(sprite);
         }
+    }
+
+    private void SetRendererSprite(Sprite sprite)
+    {
+        if (targetRenderer == null || sprite == null)
+        {
+            return;
+        }
+
+        targetRenderer.sprite = sprite;
+        ApplySpriteHeightNormalization(sprite);
+    }
+
+    private void ApplySpriteHeightNormalization(Sprite sprite)
+    {
+        if (visualRoot == null || sprite == null)
+        {
+            return;
+        }
+
+        if (resolvedReferenceSpriteHeight <= 0f)
+        {
+            ResolveReferenceSpriteHeight();
+        }
+
+        if (resolvedReferenceSpriteHeight <= 0f || sprite.bounds.size.y <= 0f)
+        {
+            visualRoot.localScale = baseVisualScale;
+            return;
+        }
+
+        float scaleMultiplier = resolvedReferenceSpriteHeight / sprite.bounds.size.y;
+        visualRoot.localScale = new Vector3(
+            baseVisualScale.x * scaleMultiplier,
+            baseVisualScale.y * scaleMultiplier,
+            baseVisualScale.z * scaleMultiplier);
+    }
+
+    private void ResolveReferenceSpriteHeight()
+    {
+        resolvedReferenceSpriteHeight = referenceSpriteHeight > 0f
+            ? referenceSpriteHeight
+            : GetFirstSpriteHeight(idleFront, walkFront, walkBack);
+    }
+
+    private static float GetFirstSpriteHeight(Sprite preferredSprite, params Sprite[][] frameSets)
+    {
+        if (preferredSprite != null && preferredSprite.bounds.size.y > 0f)
+        {
+            return preferredSprite.bounds.size.y;
+        }
+
+        if (frameSets == null)
+        {
+            return 0f;
+        }
+
+        for (int i = 0; i < frameSets.Length; i++)
+        {
+            Sprite[] frames = frameSets[i];
+            if (frames == null)
+            {
+                continue;
+            }
+
+            for (int frame = 0; frame < frames.Length; frame++)
+            {
+                Sprite sprite = frames[frame];
+                if (sprite != null && sprite.bounds.size.y > 0f)
+                {
+                    return sprite.bounds.size.y;
+                }
+            }
+        }
+
+        return 0f;
     }
 
     private Sprite GetIdleSprite(FacingDirection direction)
@@ -253,10 +452,6 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         {
             case FacingDirection.Back:
                 return idleBack != null ? idleBack : idleFront;
-            case FacingDirection.Left:
-                return idleLeft != null ? idleLeft : idleFront;
-            case FacingDirection.Right:
-                return idleRight != null ? idleRight : idleLeft != null ? idleLeft : idleFront;
             default:
                 return idleFront;
         }
@@ -268,10 +463,6 @@ public sealed class Phase9PlayerVisualFacing : MonoBehaviour
         {
             case FacingDirection.Back:
                 return walkBack;
-            case FacingDirection.Left:
-                return walkLeft;
-            case FacingDirection.Right:
-                return walkRight;
             default:
                 return walkFront;
         }

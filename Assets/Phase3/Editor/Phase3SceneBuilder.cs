@@ -96,16 +96,161 @@ public static class Phase3SceneBuilder
         Transform panel = canvasTf.Find("Panel_Shape");
         if (panel == null) return created;
 
+        created.AddRange(EnsureShapeSculptArea(panel));
+
         if (panel.Find("Btn_ToGlaze") == null)
         {
             var btn = CreateButtonChild(panel, "Btn_ToGlaze", "配釉 →", 20);
-            SetStretchAnchors(btn, new Vector2(0.7f, 0.1f), new Vector2(0.98f, 0.9f));
+            SetShapeToGlazeButtonLayout(btn);
             created.Add("Btn_ToGlaze in Panel_Shape");
         }
         return created;
     }
 
     // ─── Panel_Glaze ──────────────────────────────────────────────
+
+    private static List<string> EnsureShapeSculptArea(Transform panel)
+    {
+        var created = new List<string>();
+
+        Transform sliders = panel.Find("Group_ShapeSliders");
+        if (sliders != null)
+        {
+            sliders.gameObject.SetActive(false);
+        }
+
+        Transform matchText = panel.Find("Text_ShapeMatch");
+        if (matchText != null)
+        {
+            matchText.gameObject.SetActive(false);
+        }
+
+        Transform oldTitle = panel.Find("Text_ShapePanel");
+        if (oldTitle != null)
+        {
+            oldTitle.gameObject.SetActive(false);
+        }
+
+        Transform oldLabel = panel.Find("Text_ShapeLabel");
+        if (oldLabel != null)
+        {
+            oldLabel.gameObject.SetActive(false);
+        }
+
+        var panelImage = panel.GetComponent<Image>();
+        if (panelImage != null)
+        {
+            panelImage.color = new Color(0.08f, 0.1f, 0.1f, 0.02f);
+        }
+
+        Transform sculptArea = panel.Find("Sculpt_Area");
+        if (sculptArea == null)
+        {
+            var area = new GameObject("Sculpt_Area", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            area.transform.SetParent(panel, false);
+            area.layer = LayerMask.NameToLayer("UI");
+            var image = area.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, 0f);
+            image.raycastTarget = true;
+            sculptArea = area.transform;
+            created.Add("Sculpt_Area in Panel_Shape");
+        }
+        else
+        {
+            var areaImage = sculptArea.GetComponent<Image>();
+            if (areaImage != null)
+            {
+                areaImage.color = new Color(1f, 1f, 1f, 0f);
+                areaImage.raycastTarget = true;
+            }
+        }
+
+        SetStretchAnchors(sculptArea.gameObject, new Vector2(0.02f, 0.04f), new Vector2(0.78f, 0.96f));
+
+        created.AddRange(EnsureShadowImage(
+            sculptArea,
+            "Img_MeipingGuide",
+            "Assets/Phase3/UI/拉胚/梅瓶/0示意图.png",
+            new Color(1f, 1f, 1f, 1f)));
+        created.AddRange(EnsureShadowImage(
+            sculptArea,
+            "Img_ShadowBase",
+            "Assets/Phase3/UI/拉胚/梅瓶/Shadow_Meiping_Base.png",
+            new Color(0.35f, 0.35f, 0.35f, 0.28f)));
+        created.AddRange(EnsureShadowImage(
+            sculptArea,
+            "Img_ShadowShoulder",
+            "Assets/Phase3/UI/拉胚/梅瓶/Shadow_Meiping_Shoulder.png",
+            new Color(0.55f, 0.55f, 0.55f, 0.22f)));
+        created.AddRange(EnsureShadowImage(
+            sculptArea,
+            "Img_ShadowNeck",
+            "Assets/Phase3/UI/拉胚/梅瓶/Shadow_Meiping_Neck.png",
+            new Color(0.55f, 0.55f, 0.55f, 0.22f)));
+
+        SetChildImageOrder(sculptArea, "Img_MeipingGuide", 0);
+        SetChildImageOrder(sculptArea, "Img_ShadowBase", 1);
+        SetChildImageOrder(sculptArea, "Img_ShadowShoulder", 2);
+        SetChildImageOrder(sculptArea, "Img_ShadowNeck", 3);
+
+        Transform guide = sculptArea.Find("Img_MeipingGuide");
+        if (guide != null)
+        {
+            SetStretchAnchors(guide.gameObject, Vector2.zero, Vector2.one);
+        }
+
+        Transform button = panel.Find("Btn_ToGlaze");
+        if (button != null)
+        {
+            SetShapeToGlazeButtonLayout(button.gameObject);
+        }
+
+        return created;
+    }
+
+    private static void SetShapeToGlazeButtonLayout(GameObject obj)
+    {
+        var rect = obj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.8f, 0.1f);
+        rect.anchorMax = new Vector2(0.98f, 0.9f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(-156.1f, -106.8f);
+        rect.sizeDelta = Vector2.zero;
+    }
+
+    private static List<string> EnsureShadowImage(Transform parent, string name, string spritePath, Color color)
+    {
+        var created = new List<string>();
+        Transform existing = parent.Find(name);
+        if (existing != null)
+        {
+            var existingImage = existing.GetComponent<Image>();
+            if (existingImage != null)
+            {
+                existingImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+                existingImage.color = color;
+                existingImage.preserveAspect = true;
+                existingImage.raycastTarget = false;
+            }
+
+            SetStretchAnchors(existing.gameObject, Vector2.zero, Vector2.one);
+            return created;
+        }
+
+        var obj = CreateImageChild(parent, name, spritePath, color);
+        SetStretchAnchors(obj, Vector2.zero, Vector2.one);
+        created.Add($"{name} in Panel_Shape/Sculpt_Area");
+        return created;
+    }
+
+    private static void SetChildImageOrder(Transform parent, string childName, int index)
+    {
+        Transform child = parent.Find(childName);
+        if (child != null)
+        {
+            child.SetSiblingIndex(index);
+        }
+    }
 
     private static List<string> EnsureGlazePanelControls(Transform canvasTf)
     {
@@ -317,6 +462,21 @@ public static class Phase3SceneBuilder
         text.color = Color.white;
         text.raycastTarget = false;
         text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+        return obj;
+    }
+
+    private static GameObject CreateImageChild(Transform parent, string name, string spritePath, Color color)
+    {
+        var obj = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        obj.transform.SetParent(parent, false);
+        obj.layer = LayerMask.NameToLayer("UI");
+
+        var image = obj.GetComponent<Image>();
+        image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+        image.color = color;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
 
         return obj;
     }

@@ -25,6 +25,8 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     [SerializeField] private string walkableAreaName = "NavMesh-walkable";
     [SerializeField] private string walkableBakeMeshName = "NavMeshWalkableBakeMesh_FromAlpha";
     [SerializeField, Min(0.01f)] private float clickSampleDistance = 0.25f;
+    [SerializeField, Min(0.05f)] private float nearestWalkableSearchRadius = 8f;
+    [SerializeField, Min(0.02f)] private float nearestWalkableSearchStep = 0.12f;
     [SerializeField, Min(0.02f)] private float pathCoverageSampleStep = 0.08f;
     [SerializeField] private float navMeshPlaneY = 0.52f;
 
@@ -59,6 +61,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
     private struct BridgePanelLayout
     {
+        public Vector2 AnchoredPosition;
         public Vector2 Size;
         public Vector3 Scale;
     }
@@ -568,7 +571,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = Vector2.zero;
+        rect.anchoredPosition = rect.name == "Panel_Shape" ? layout.AnchoredPosition : Vector2.zero;
         rect.sizeDelta = layout.Size;
         rect.localScale = new Vector3(
             layout.Scale.x * bridgePanelScaleMultiplier,
@@ -612,6 +615,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
         return new BridgePanelLayout
         {
+            AnchoredPosition = rect.anchoredPosition,
             Size = size,
             Scale = scale
         };
@@ -742,16 +746,10 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             return false;
         }
 
-        if (!IsInsideWalkableArea(worldPoint))
-        {
-            return false;
-        }
-
         EnsureNavMeshPlaneY();
 
-        Vector3 candidate = new Vector3(worldPoint.x, navMeshPlaneY, worldPoint.z);
         NavMeshHit targetHit;
-        if (!NavMesh.SamplePosition(candidate, out targetHit, clickSampleDistance, NavMesh.AllAreas))
+        if (!TryResolveNearestWalkableNavMeshPoint(worldPoint, out targetHit))
         {
             return false;
         }
@@ -793,6 +791,173 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
         navTarget = targetHit.position;
         return true;
+    }
+
+    private bool TryResolveNearestWalkableNavMeshPoint(Vector3 worldPoint, out NavMeshHit targetHit)
+    {
+        Vector3 candidate = new Vector3(worldPoint.x, navMeshPlaneY, worldPoint.z);
+        if (TrySampleInsideWalkableArea(candidate, clickSampleDistance, out targetHit))
+        {
+            return true;
+        }
+
+        if (TryFindNearestPointOnWalkableBakeMesh(candidate, out targetHit))
+        {
+            return true;
+        }
+
+        return TryFindNearestWalkableNavMeshPoint(candidate, out targetHit);
+    }
+
+    private bool TrySampleInsideWalkableArea(Vector3 candidate, float sampleDistance, out NavMeshHit targetHit)
+    {
+        if (NavMesh.SamplePosition(candidate, out targetHit, sampleDistance, NavMesh.AllAreas))
+        {
+            Vector3 hitWorldPoint = new Vector3(targetHit.position.x, navMeshPlaneY, targetHit.position.z);
+            return IsInsideWalkableArea(hitWorldPoint);
+        }
+
+        return false;
+    }
+
+    private bool TryFindNearestPointOnWalkableBakeMesh(Vector3 candidate, out NavMeshHit nearestHit)
+    {
+        nearestHit = new NavMeshHit();
+        if (!ResolveWalkableBakeMesh())
+        {
+            return false;
+        }
+
+        Vector3 localPoint = walkableBakeMeshFilter.transform.worldToLocalMatrix.MultiplyPoint3x4(candidate);
+        Vector2 localPointXZ = new Vector2(localPoint.x, localPoint.z);
+        Vector3[] vertices = walkableBakeMesh.vertices;
+        int[] triangles = walkableBakeMesh.triangles;
+        float bestSqrDistance = float.MaxValue;
+        Vector3 bestWorldPoint = Vector3.zero;
+        bool found = false;
+
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            Vector3 a = vertices[triangles[i]];
+            Vector3 b = vertices[triangles[i + 1]];
+            Vector3 c = vertices[triangles[i + 2]];
+            Vector2 closest = ClosestPointOnTriangleXZ(
+                localPointXZ,
+                new Vector2(a.x, a.z),
+                new Vector2(b.x, b.z),
+                new Vector2(c.x, c.z));
+            float sqrDistance = (closest - localPointXZ).sqrMagnitude;
+            if (sqrDistance >= bestSqrDistance)
+            {
+                continue;
+            }
+
+            Vector3 localClosest = new Vector3(closest.x, localPoint.y, closest.y);
+            bestWorldPoint = walkableBakeMeshFilter.transform.localToWorldMatrix.MultiplyPoint3x4(localClosest);
+            bestWorldPoint.y = navMeshPlaneY;
+            bestSqrDistance = sqrDistance;
+            found = true;
+        }
+
+        if (!found)
+        {
+            return false;
+        }
+
+        return TrySampleInsideWalkableArea(bestWorldPoint, Mathf.Max(clickSampleDistance, nearestWalkableSearchStep), out nearestHit);
+    }
+
+    private bool TryFindNearestWalkableNavMeshPoint(Vector3 candidate, out NavMeshHit nearestHit)
+    {
+        nearestHit = new NavMeshHit();
+        bool found = false;
+        float bestSqrDistance = float.MaxValue;
+        float step = Mathf.Max(0.02f, nearestWalkableSearchStep);
+        int maxRing = Mathf.CeilToInt(Mathf.Max(step, nearestWalkableSearchRadius) / step);
+
+        for (int ring = 1; ring <= maxRing; ring++)
+        {
+            float radius = ring * step;
+            int sampleCount = Mathf.Max(8, Mathf.CeilToInt(2f * Mathf.PI * radius / step));
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float angle = i * Mathf.PI * 2f / sampleCount;
+                Vector3 sample = candidate + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+
+                NavMeshHit hit;
+                if (!TrySampleInsideWalkableArea(sample, step, out hit))
+                {
+                    continue;
+                }
+
+                float sqrDistance = (new Vector3(hit.position.x, 0f, hit.position.z)
+                    - new Vector3(candidate.x, 0f, candidate.z)).sqrMagnitude;
+                if (sqrDistance < bestSqrDistance)
+                {
+                    bestSqrDistance = sqrDistance;
+                    nearestHit = hit;
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Vector2 ClosestPointOnTriangleXZ(Vector2 point, Vector2 a, Vector2 b, Vector2 c)
+    {
+        if (IsPointInsideTriangleXZ(point, a, b, c))
+        {
+            return point;
+        }
+
+        Vector2 closestAB = ClosestPointOnSegment(point, a, b);
+        Vector2 closestBC = ClosestPointOnSegment(point, b, c);
+        Vector2 closestCA = ClosestPointOnSegment(point, c, a);
+        float distanceAB = (point - closestAB).sqrMagnitude;
+        float distanceBC = (point - closestBC).sqrMagnitude;
+        float distanceCA = (point - closestCA).sqrMagnitude;
+
+        if (distanceAB <= distanceBC && distanceAB <= distanceCA)
+        {
+            return closestAB;
+        }
+
+        return distanceBC <= distanceCA ? closestBC : closestCA;
+    }
+
+    private static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float denominator = Vector2.Dot(ab, ab);
+        if (denominator <= 0.000001f)
+        {
+            return a;
+        }
+
+        float t = Mathf.Clamp01(Vector2.Dot(point - a, ab) / denominator);
+        return a + ab * t;
+    }
+
+    private static bool IsPointInsideTriangleXZ(Vector2 point, Vector2 a, Vector2 b, Vector2 c)
+    {
+        const float epsilon = 0.0001f;
+        float denominator = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
+        if (Mathf.Abs(denominator) < epsilon)
+        {
+            return false;
+        }
+
+        float u = ((b.y - c.y) * (point.x - c.x) + (c.x - b.x) * (point.y - c.y)) / denominator;
+        float v = ((c.y - a.y) * (point.x - c.x) + (a.x - c.x) * (point.y - c.y)) / denominator;
+        float w = 1f - u - v;
+        return u >= -epsilon && v >= -epsilon && w >= -epsilon;
     }
 
     private bool TryGetWorldPointOnMapPlane(Vector3 screenPosition, out Vector3 worldPoint)
