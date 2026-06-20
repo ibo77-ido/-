@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_003_FAIL
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_003_FAIL
+  ChapterState: 4
+  NodeKind: 5
+  OrderId: ORDER_003
+  SpeakerCharacterId: P10_CH01_NPC_003_ChenShuYuan_Placeholder
+  TargetId: P10_CH01_ORDER_003
+  DialogueText: "釉色……偏了。不像水光，更像——灰雨。无妨，再试，我明日再来。若是火候急了，影青釉的性子也急不得。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_003_ChenShuYuan_Placeholder
+    DialogueText: "釉色……偏了。不像水光，更像——灰雨。无妨，再试，我明日再来。若是火候急了，影青釉的性子也急不得。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_SystemPrompt
+    DialogueText: "订单失败：釉色评分或烧窑评分未达标；请重新配釉、施釉并控制 1250°C 到 1280°C 的烧窑区间。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_004_ACCEPT
+  ReferencedPropIds:
+  - P10_PROP_003_BrokenBowl
+  Conditions:
+  - ConditionKey: ORDER_003_RESULT_FAIL
+    ExpectedValue: 1
+    RequiredNodeId: P10_CH01_NODE_ORDER_003_ACCEPT
+    Notes: Neutral result flag supplied by future bridge or debug playback.

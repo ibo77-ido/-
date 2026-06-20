@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a43e786bfc44ef58e857559b121dfa4, type: 3}
+  m_Name: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+  m_EditorClassIdentifier: 
+  CharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+  DisplayName: 周掌柜
+  Role: 茶馆老板，第一章前两笔订单的市井客户。
+  RelationshipSummary: 讲价清楚、挑剔直接，用甜白釉茶碗和后续茶器需求测试窑厂能否重新守住承诺。
+  DefaultNodeId: P10_CH01_NODE_ORDER_001_ACCEPT

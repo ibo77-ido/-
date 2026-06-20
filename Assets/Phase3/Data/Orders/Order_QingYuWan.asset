@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1409fd3b2918ef04ca97b6bd53d8677a, type: 3}
   m_Name: Order_QingYuWan
   m_EditorClassIdentifier: 
-  orderName: "\u9752\u91C9\u7897"
+  orderName: "\u751C\u767D\u91C9\u8336\u7897"
   orderID: ORDER_001
   requiredShapeID: SHAPE_001
-  requiredGlazeID: GLAZE_001
+  requiredGlazeID: GLAZE_002
   difficulty: 1
-  baseGold: 100
+  baseGold: 50
   baseReputation: 10

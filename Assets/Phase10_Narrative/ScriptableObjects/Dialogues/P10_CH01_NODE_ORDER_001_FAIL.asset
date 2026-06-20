@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_001_FAIL
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_001_FAIL
+  ChapterState: 3
+  NodeKind: 5
+  OrderId: ORDER_001
+  SpeakerCharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+  TargetId: P10_CH01_ORDER_001
+  DialogueText: "口沿歪了。我茶馆的桌子不平，碗再歪，客人会骂的。重做吧，材料钱先挂账，做好了结清。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+    DialogueText: "口沿歪了。我茶馆的桌子不平，碗再歪，客人会骂的。重做吧，材料钱先挂账，做好了结清。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_SystemPrompt
+    DialogueText: "订单失败：请重新制作；已消耗材料将从资金中扣除。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_003_ACCEPT
+  ReferencedPropIds:
+  - P10_PROP_003_BrokenBowl
+  Conditions:
+  - ConditionKey: ORDER_001_RESULT_FAIL
+    ExpectedValue: 1
+    RequiredNodeId: P10_CH01_NODE_ORDER_001_ACCEPT
+    Notes: Neutral result flag supplied by future bridge or debug playback.

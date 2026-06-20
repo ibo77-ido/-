@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_003_PASS
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_003_PASS
+  ChapterState: 4
+  NodeKind: 4
+  OrderId: ORDER_003
+  SpeakerCharacterId: P10_CH01_NPC_003_ChenShuYuan_Placeholder
+  TargetId: P10_CH01_ORDER_003
+  DialogueText: "釉色……尚可。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_003_ChenShuYuan_Placeholder
+    DialogueText: "釉色……尚可。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_Narrator
+    DialogueText: "“尚可”——你后来才明白，对陈先生来说，这已经算是夸了。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_UIResult
+    DialogueText: "获得 55 铜钱，声望 +10；影青釉图鉴解锁。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_004_ACCEPT
+  ReferencedPropIds: []
+  Conditions:
+  - ConditionKey: ORDER_003_RESULT_PASS
+    ExpectedValue: 1
+    RequiredNodeId: P10_CH01_NODE_ORDER_003_ACCEPT
+    Notes: Neutral result flag supplied by future bridge or debug playback.

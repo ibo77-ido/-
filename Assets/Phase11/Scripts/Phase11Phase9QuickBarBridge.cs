@@ -158,6 +158,7 @@ public class Phase11Phase9QuickBarBridge : MonoBehaviour
 
         if (playerCharacter == null)
         {
+            SfxPlayer.Play(SfxId.Denied);
             return;
         }
 
@@ -165,6 +166,7 @@ public class Phase11Phase9QuickBarBridge : MonoBehaviour
         if (target == null)
         {
             Debug.LogWarning("[Phase11Phase9QuickBarBridge] Missing Phase9 interaction target for " + area);
+            SfxPlayer.Play(SfxId.Denied);
             return;
         }
 
@@ -172,6 +174,7 @@ public class Phase11Phase9QuickBarBridge : MonoBehaviour
         if (!TryResolveNavigationTarget(target, out navigationTarget))
         {
             Debug.LogWarning("[Phase11Phase9QuickBarBridge] Could not resolve a NavMesh position near " + target.name);
+            SfxPlayer.Play(SfxId.Denied);
             return;
         }
 
@@ -179,7 +182,16 @@ public class Phase11Phase9QuickBarBridge : MonoBehaviour
         pendingMoveDestination = navigationTarget;
         hasPendingMoveDestination = true;
         pendingStartTime = Time.time;
-        playerCharacter.SetDestination(navigationTarget);
+        if (playerCharacter.TrySetDestination(navigationTarget))
+        {
+            SfxPlayer.Play(SfxId.NavStart);
+        }
+        else
+        {
+            pendingArea = null;
+            hasPendingMoveDestination = false;
+            SfxPlayer.Play(SfxId.Denied);
+        }
     }
 
     private Transform FindTarget(AreaType area)

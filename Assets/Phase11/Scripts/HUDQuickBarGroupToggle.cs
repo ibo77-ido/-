@@ -41,6 +41,7 @@ public sealed class HUDQuickBarGroupToggle : MonoBehaviour
         }
 
         bool shouldShow = !targetsToToggle[0].activeSelf;
+        SfxPlayer.Play(shouldShow ? SfxId.PanelOpen : SfxId.PanelClose);
         for (int i = 0; i < targetsToToggle.Length; i++)
         {
             if (targetsToToggle[i] != null)

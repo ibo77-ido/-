@@ -58,6 +58,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     private bool walkableResolveAttempted;
     private bool walkableBakeMeshResolveAttempted;
     private bool navMeshPlaneResolved;
+    private MovementController subscribedMovementController;
 
     private struct BridgePanelLayout
     {
@@ -92,6 +93,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        UnsubscribeMovementController();
 
         if (resultPanelController != null)
         {
@@ -148,20 +150,24 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     {
         if (currentRuntimeMode != RuntimeMode.WorldMode || !isPhase3Loaded)
         {
+            SfxPlayer.Play(SfxId.InteractFail);
             return false;
         }
 
         if (GetPlayerTransform() == null)
         {
+            SfxPlayer.Play(SfxId.InteractFail);
             return false;
         }
 
         EntryPoint nearest = FindNearestEntryPoint();
         if (nearest == null)
         {
+            SfxPlayer.Play(SfxId.InteractFail);
             return false;
         }
 
+        SfxPlayer.Play(SfxId.InteractSuccess);
         EnterGameplay(nearest.AreaType);
         return true;
     }
@@ -331,6 +337,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
     private void ExitGameplayModule()
     {
+        SfxPlayer.Play(SfxId.InteractCancel);
         Debug.Log("[Phase9InteractionBridge] Exit module. Progress: "
             + "Order=" + orderDone
             + ", Shape=" + shapeDone
@@ -722,8 +729,18 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         Vector3 navTarget;
         if (TryResolveMoveTarget(Input.mousePosition, out navTarget))
         {
-            playerCharacter.SetDestination(navTarget);
+            if (playerCharacter.TrySetDestination(navTarget))
+            {
+                SfxPlayer.Play(SfxId.NavStart);
+            }
+            else
+            {
+                SfxPlayer.Play(SfxId.Denied);
+            }
+            return;
         }
+
+        SfxPlayer.Play(SfxId.Denied);
     }
 
     private bool TryResolveMoveTarget(Vector3 screenPosition, out Vector3 navTarget)
@@ -760,13 +777,13 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             return false;
         }
 
-        Transform playerTransform = GetPlayerTransform();
-        if (playerTransform == null)
+        Transform navMeshReference = GetNavMeshReferenceTransform();
+        if (navMeshReference == null)
         {
             return false;
         }
 
-        Vector3 currentCandidate = new Vector3(playerTransform.position.x, navMeshPlaneY, playerTransform.position.z);
+        Vector3 currentCandidate = new Vector3(navMeshReference.position.x, navMeshPlaneY, navMeshReference.position.z);
         NavMeshHit currentHit;
         if (!NavMesh.SamplePosition(currentCandidate, out currentHit, clickSampleDistance, NavMesh.AllAreas))
         {
@@ -1189,10 +1206,11 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         }
     }
 
-private void ResolvePlayerReferences(bool allowFind = true)
+    private void ResolvePlayerReferences(bool allowFind = true)
     {
         if (playerCharacter != null && movementController != null && player != null)
         {
+            SubscribeMovementController();
             return;
         }
 
@@ -1230,6 +1248,8 @@ private void ResolvePlayerReferences(bool allowFind = true)
             {
                 movementController.SetMappedNavMeshY(navMeshPlaneY);
             }
+
+            SubscribeMovementController();
 
             return;
         }
@@ -1288,6 +1308,8 @@ private void ResolvePlayerReferences(bool allowFind = true)
         {
             movementController.SetMappedNavMeshY(navMeshPlaneY);
         }
+
+        SubscribeMovementController();
     }
 
     private Transform GetPlayerTransform()
@@ -1299,6 +1321,58 @@ private void ResolvePlayerReferences(bool allowFind = true)
         }
 
         return player;
+    }
+
+    private Transform GetNavMeshReferenceTransform()
+    {
+        ResolvePlayerReferences(false);
+
+        if (movementController != null)
+        {
+            return movementController.transform;
+        }
+
+        if (playerCharacter != null)
+        {
+            return playerCharacter.Transform;
+        }
+
+        GameObject heroineRoot = FindGameObject("HeroineRoot");
+        if (heroineRoot != null)
+        {
+            return heroineRoot.transform;
+        }
+
+        return GetPlayerTransform();
+    }
+
+    private void SubscribeMovementController()
+    {
+        if (movementController == null || subscribedMovementController == movementController)
+        {
+            return;
+        }
+
+        UnsubscribeMovementController();
+        subscribedMovementController = movementController;
+        subscribedMovementController.DestinationReached.AddListener(OnMovementDestinationReached);
+    }
+
+    private void UnsubscribeMovementController()
+    {
+        if (subscribedMovementController != null)
+        {
+            subscribedMovementController.DestinationReached.RemoveListener(OnMovementDestinationReached);
+            subscribedMovementController = null;
+        }
+    }
+
+    private void OnMovementDestinationReached()
+    {
+        if (currentRuntimeMode == RuntimeMode.WorldMode)
+        {
+            SfxPlayer.Play(SfxId.NavArrive);
+        }
     }
 
     private static Transform FindTransform(string objectName)

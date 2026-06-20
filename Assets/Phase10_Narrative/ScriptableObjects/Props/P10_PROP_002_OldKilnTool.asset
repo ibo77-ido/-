@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9fbbe91b08425f9cf4d79884ec94cb, type: 3}
+  m_Name: P10_PROP_002_OldKilnTool
+  m_EditorClassIdentifier: 
+  PropId: P10_PROP_002_OldKilnTool
+  DisplayName: Old Kiln Tool
+  Description: A worn workshop tool kept for memory and instruction.
+  StoryHint: Represents craft practice, not a gameplay material or production input.
+  RelatedNodeId: P10_CH01_NODE_TUTORIAL_01
+  OptionalInspectText: The handle is smooth from years of use.

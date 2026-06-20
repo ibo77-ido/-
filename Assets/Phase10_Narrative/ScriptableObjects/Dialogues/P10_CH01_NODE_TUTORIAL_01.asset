@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_TUTORIAL_01
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_TUTORIAL_01
+  ChapterState: 2
+  NodeKind: 2
+  OrderId: 
+  SpeakerCharacterId: P10_CH01_NPC_001_XuLaoBo_Placeholder
+  TargetId: P10_CH01_TutorialBeat
+  DialogueText: "先上坯台。碗的口沿要宽，碗底要稳。手感的事，说不清楚，你试着拉一只看看。施釉别急，太薄发灰，太厚会流；烧窑更急不得，火候要稳。开窑的时候你自己来，手上没数，嘴上说没用。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_001_XuLaoBo_Placeholder
+    DialogueText: "先上坯台。碗的口沿要宽，碗底要稳。手感的事，说不清楚，你试着拉一只看看。施釉别急，太薄发灰，太厚会流；烧窑更急不得，火候要稳。开窑的时候你自己来，手上没数，嘴上说没用。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_001_ACCEPT
+  ReferencedPropIds:
+  - P10_PROP_002_OldKilnTool
+  Conditions: []

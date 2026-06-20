@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a43e786bfc44ef58e857559b121dfa4, type: 3}
+  m_Name: P10_CH01_SPEAKER_Player
+  m_EditorClassIdentifier: 
+  CharacterId: P10_CH01_SPEAKER_Player
+  DisplayName: 玩家
+  Role: 年轻继承人。
+  RelationshipSummary: 玩家叙事视角与未来选择文本占位；P10D-17 不实现功能性选择系统。
+  DefaultNodeId: P10_CH01_NODE_PROLOGUE_01

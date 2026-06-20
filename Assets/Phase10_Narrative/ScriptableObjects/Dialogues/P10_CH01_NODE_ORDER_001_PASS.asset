@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_001_PASS
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_001_PASS
+  ChapterState: 3
+  NodeKind: 4
+  OrderId: ORDER_001
+  SpeakerCharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+  TargetId: P10_CH01_ORDER_001
+  DialogueText: "嗯，稳。釉色……差不多，够用了。行，五十铜钱，说好的。下次做得再好看一点。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+    DialogueText: "嗯，稳。釉色……差不多，够用了。行，五十铜钱，说好的。下次做得再好看一点。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_Narrator
+    DialogueText: "甜白釉在清晨的光线里泛着温润的暖白。这笔账，算是过了。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_UIResult
+    DialogueText: "获得 50 铜钱，声望 +10；甜白釉解锁；甜白釉图鉴解锁。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_003_ACCEPT
+  ReferencedPropIds: []
+  Conditions:
+  - ConditionKey: ORDER_001_RESULT_PASS
+    ExpectedValue: 1
+    RequiredNodeId: P10_CH01_NODE_ORDER_001_ACCEPT
+    Notes: Neutral result flag supplied by future bridge or debug playback.

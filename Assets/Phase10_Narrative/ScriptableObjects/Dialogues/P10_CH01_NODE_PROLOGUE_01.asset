@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_PROLOGUE_01
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_PROLOGUE_01
+  ChapterState: 1
+  NodeKind: 1
+  OrderId: 
+  SpeakerCharacterId: P10_CH01_SPEAKER_Narrator
+  TargetId: P10_CH01_ChapterOpening
+  DialogueText: "父亲走的那年，窑炉最后一次点火。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_SPEAKER_Narrator
+    DialogueText: "父亲走的那年，窑炉最后一次点火。"
+  - SpeakerCharacterId: P10_CH01_NPC_001_XuLaoBo_Placeholder
+    DialogueText: "来了。昨晚睡得着？周掌柜昨天托人捎了话，他茶馆的碗缺了几只，问咱们能不能接。你接不接？"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_SystemPrompt
+    DialogueText: "新订单：周掌柜的甜白釉茶碗已接受。当前资金：100 铜钱，当前声望：0。"
+  NextNodeIds:
+  - P10_CH01_NODE_TUTORIAL_01
+  ReferencedPropIds:
+  - P10_PROP_001_FatherLedger
+  Conditions: []

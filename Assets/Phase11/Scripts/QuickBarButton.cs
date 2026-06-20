@@ -28,6 +28,7 @@ public class QuickBarButton : MonoBehaviour
 
     private void HandleClick()
     {
+        SfxPlayer.Play(SfxId.UiConfirm);
         onClick?.Invoke(areaType);
     }
 

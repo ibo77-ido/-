@@ -43,11 +43,18 @@ public class PlayerCharacter : MonoBehaviour, ICharacter
 
     public void SetDestination(Vector3 target)
     {
-        if (gameManager != null && !gameManager.CanMove()) return;
+        TrySetDestination(target);
+    }
+
+    public bool TrySetDestination(Vector3 target)
+    {
+        if (gameManager != null && !gameManager.CanMove()) return false;
         if (movementController != null)
         {
-            movementController.SetDestination(target);
+            return movementController.TrySetDestination(target);
         }
+
+        return false;
     }
 
     public void StopMoving()

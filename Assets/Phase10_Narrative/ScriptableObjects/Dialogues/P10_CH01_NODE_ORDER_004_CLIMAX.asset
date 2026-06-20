@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_004_CLIMAX
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_004_CLIMAX
+  ChapterState: 5
+  NodeKind: 7
+  OrderId: ORDER_004
+  SpeakerCharacterId: P10_CH01_SPEAKER_Narrator
+  TargetId: P10_CH01_ORDER_004
+  DialogueText: "窑门打开的瞬间，一道深红从暗处透出来。不是暗沉的砖红，不是淡薄的粉红，是你以前只在父亲账本里见过描述的颜色。正红，鲜亮，像血，又像云。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_SPEAKER_Narrator
+    DialogueText: "窑门打开的瞬间，一道深红从暗处透出来。不是暗沉的砖红，不是淡薄的粉红，是你以前只在父亲账本里见过描述的颜色。正红，鲜亮，像血，又像云。"
+  - SpeakerCharacterId: P10_CH01_NPC_004_LuKe_Placeholder
+    DialogueText: "……成了。说好七十，给你一百四。码头那边的活，过两天叫人来谈。"
+  - SpeakerCharacterId: P10_CH01_NPC_001_XuLaoBo_Placeholder
+    DialogueText: "祭红釉……你父亲最后一次烧，也是这个颜色。那时候他也是你这个年纪。"
+  NextNodeIds:
+  - P10_CH01_NODE_CHAPTER_ENDING
+  ReferencedPropIds:
+  - P10_PROP_004_AncientOrder
+  - P10_PROP_005_FamilyLetter
+  Conditions:
+  - ConditionKey: ORDER_004_RESULT_CLIMAX
+    ExpectedValue: 1
+    RequiredNodeId: P10_CH01_NODE_ORDER_004_ACCEPT
+    Notes: Neutral result flag for the boutique climax path.

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_003_ACCEPT
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_003_ACCEPT
+  ChapterState: 4
+  NodeKind: 3
+  OrderId: ORDER_003
+  SpeakerCharacterId: P10_CH01_NPC_003_ChenShuYuan_Placeholder
+  TargetId: P10_CH01_ORDER_003
+  DialogueText: "这里……还开着。我姓陈，在城东书院教书。听说这里的窑重新点了，我想要一只茶碗。影青釉，碗口要正，腹部要有一种收着的感觉；不是大碗，是喝茶用的小碗，拿在手里要像握着一捧水光。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_003_ChenShuYuan_Placeholder
+    DialogueText: "这里……还开着。我姓陈，在城东书院教书。听说这里的窑重新点了，我想要一只茶碗。影青釉，碗口要正，腹部要有一种收着的感觉；不是大碗，是喝茶用的小碗，拿在手里要像握着一捧水光。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_SystemPrompt
+    DialogueText: "订单接受：影青釉茶碗 × 1。要求：釉色评分 ≥ 75，器型评分 ≥ 80。奖励：55 铜钱，声望 +10。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_003_PASS
+  - P10_CH01_NODE_ORDER_003_FAIL
+  ReferencedPropIds:
+  - P10_PROP_005_FamilyLetter
+  Conditions: []

@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c98130c222794dfc846e06f173af42e4, type: 3}
+  m_Name: P10_CH01_ChapterFlow
+  m_EditorClassIdentifier: 
+  ChapterId: P10_CH01
+  SourceDocument: Project/StoryMain.md
+  InitialState: 1
+  StateFlow:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  NodeIds:
+  - P10_CH01_NODE_PROLOGUE_01
+  - P10_CH01_NODE_TUTORIAL_01
+  - P10_CH01_NODE_ORDER_001_ACCEPT
+  - P10_CH01_NODE_ORDER_001_PASS
+  - P10_CH01_NODE_ORDER_001_FAIL
+  - P10_CH01_NODE_ORDER_003_ACCEPT
+  - P10_CH01_NODE_ORDER_003_PASS
+  - P10_CH01_NODE_ORDER_003_FAIL
+  - P10_CH01_NODE_ORDER_004_ACCEPT
+  - P10_CH01_NODE_ORDER_004_PASS_NORMAL
+  - P10_CH01_NODE_ORDER_004_FAIL
+  - P10_CH01_NODE_ORDER_004_CLIMAX
+  - P10_CH01_NODE_CHAPTER_ENDING
+  CharacterIds:
+  - P10_CH01_NPC_001_XuLaoBo_Placeholder
+  - P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+  - P10_CH01_NPC_003_ChenShuYuan_Placeholder
+  - P10_CH01_NPC_004_LuKe_Placeholder
+  - P10_CH01_SPEAKER_Narrator
+  - P10_CH01_SPEAKER_SystemPrompt
+  - P10_CH01_SPEAKER_UIResult
+  - P10_CH01_SPEAKER_Player
+  PropIds:
+  - P10_PROP_001_FatherLedger
+  - P10_PROP_002_OldKilnTool
+  - P10_PROP_003_BrokenBowl
+  - P10_PROP_004_AncientOrder
+  - P10_PROP_005_FamilyLetter
+  OrderMappings:
+  - OrderId: ORDER_001
+    AcceptNodeId: P10_CH01_NODE_ORDER_001_ACCEPT
+    PassNodeId: P10_CH01_NODE_ORDER_001_PASS
+    FailNodeId: P10_CH01_NODE_ORDER_001_FAIL
+    NormalEndNodeId: 
+    ClimaxNodeId: 
+  - OrderId: ORDER_003
+    AcceptNodeId: P10_CH01_NODE_ORDER_003_ACCEPT
+    PassNodeId: P10_CH01_NODE_ORDER_003_PASS
+    FailNodeId: P10_CH01_NODE_ORDER_003_FAIL
+    NormalEndNodeId: 
+    ClimaxNodeId: 
+  - OrderId: ORDER_004
+    AcceptNodeId: P10_CH01_NODE_ORDER_004_ACCEPT
+    PassNodeId: P10_CH01_NODE_ORDER_004_PASS_NORMAL
+    FailNodeId: P10_CH01_NODE_ORDER_004_FAIL
+    NormalEndNodeId: P10_CH01_NODE_ORDER_004_PASS_NORMAL
+    ClimaxNodeId: P10_CH01_NODE_ORDER_004_CLIMAX

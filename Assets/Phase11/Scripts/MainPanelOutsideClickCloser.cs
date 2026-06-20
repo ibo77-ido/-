@@ -78,6 +78,11 @@ public class MainPanelOutsideClickCloser : MonoBehaviour
     {
         if (panelRoot != null)
         {
+            if (panelRoot.activeSelf != active)
+            {
+                SfxPlayer.Play(active ? SfxId.PanelOpen : SfxId.PanelClose);
+            }
+
             panelRoot.SetActive(active);
         }
     }

@@ -17,7 +17,7 @@ public sealed class HUDQuickBarSpriteToggle : MonoBehaviour, IPointerClickHandle
 
         if (hideOnStart)
         {
-            SetTargetsActive(false);
+            SetTargetsActive(false, false);
         }
     }
 
@@ -63,6 +63,16 @@ public sealed class HUDQuickBarSpriteToggle : MonoBehaviour, IPointerClickHandle
 
     private void SetTargetsActive(bool active)
     {
+        SetTargetsActive(active, true);
+    }
+
+    private void SetTargetsActive(bool active, bool playSfx)
+    {
+        if (playSfx)
+        {
+            SfxPlayer.Play(active ? SfxId.PanelOpen : SfxId.PanelClose);
+        }
+
         if (target != null)
         {
             target.SetActive(active);

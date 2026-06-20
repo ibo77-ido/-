@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_004_ACCEPT
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_004_ACCEPT
+  ChapterState: 5
+  NodeKind: 3
+  OrderId: ORDER_004
+  SpeakerCharacterId: P10_CH01_NPC_004_LuKe_Placeholder
+  TargetId: P10_CH01_ORDER_004
+  DialogueText: "你们这里……是窑厂吧？还能接活儿？我要祭红釉的罐子，直筒型，高一点，家里老人的祭祀用，不是摆件，是真要上香的。要正红，不能暗，不能偏紫，不能发黑。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_004_LuKe_Placeholder
+    DialogueText: "你们这里……是窑厂吧？还能接活儿？我要祭红釉的罐子，直筒型，高一点，家里老人的祭祀用，不是摆件，是真要上香的。要正红，不能暗，不能偏紫，不能发黑。"
+  - SpeakerCharacterId: P10_CH01_NPC_001_XuLaoBo_Placeholder
+    DialogueText: "祭红釉靠铜发色，温度要稳在 1250 到 1280，早一分晚一分都容易出问题。别急。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_SystemPrompt
+    DialogueText: "订单接受：祭红釉香筒。奖励：70 铜钱，声望 +10。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_004_PASS_NORMAL
+  - P10_CH01_NODE_ORDER_004_FAIL
+  - P10_CH01_NODE_ORDER_004_CLIMAX
+  ReferencedPropIds:
+  - P10_PROP_004_AncientOrder
+  Conditions: []

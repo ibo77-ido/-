@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 public class MovementController : MonoBehaviour
 {
@@ -10,6 +11,8 @@ public class MovementController : MonoBehaviour
     public float destinationSampleDistance = 3f;
     public float fallbackSpeed = 2.5f;
     public float fallbackStoppingDistance = 0.08f;
+
+    public UnityEvent DestinationReached = new UnityEvent();
 
     private NavMeshAgent navMeshAgent;
     private NavMeshPath manualPath;
@@ -48,7 +51,7 @@ public class MovementController : MonoBehaviour
 
         if (HasReachedDestination())
         {
-            Stop();
+            CompleteDestination();
             return;
         }
 
@@ -125,7 +128,12 @@ public class MovementController : MonoBehaviour
 
     public void SetDestination(Vector3 target)
     {
-        if (!EnsureOnNavMesh()) return;
+        TrySetDestination(target);
+    }
+
+    public bool TrySetDestination(Vector3 target)
+    {
+        if (!EnsureOnNavMesh()) return false;
         ConfigureManualMovement();
 
         NavMeshHit hit;
@@ -136,9 +144,13 @@ public class MovementController : MonoBehaviour
                 manualPath = new NavMeshPath();
             }
 
-            bool pathFound = mapNavMeshZToTransformY
-                ? NavMesh.CalculatePath(GetCurrentPathPosition(), hit.position, NavMesh.AllAreas, manualPath)
-                : navMeshAgent.CalculatePath(hit.position, manualPath);
+            Vector3 pathStart = GetCurrentPathPosition();
+            if (!mapNavMeshZToTransformY && navMeshAgent.isOnNavMesh)
+            {
+                navMeshAgent.nextPosition = pathStart;
+            }
+
+            bool pathFound = NavMesh.CalculatePath(pathStart, hit.position, NavMesh.AllAreas, manualPath);
 
             if (pathFound && manualPath.status == NavMeshPathStatus.PathComplete && manualPath.corners.Length > 1)
             {
@@ -149,8 +161,11 @@ public class MovementController : MonoBehaviour
                 pathCorners = manualPath.corners;
                 currentCornerIndex = 1;
                 hasDestination = true;
+                return true;
             }
         }
+
+        return false;
     }
 
     public void Stop()
@@ -188,6 +203,12 @@ public class MovementController : MonoBehaviour
 
         float stoppingDistance = GetStoppingDistance();
         return (currentPosition - destination).sqrMagnitude <= stoppingDistance * stoppingDistance;
+    }
+
+    private void CompleteDestination()
+    {
+        Stop();
+        DestinationReached.Invoke();
     }
 
     public void SetMapNavMeshZToTransformY(bool enabled)

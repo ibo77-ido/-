@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb195204d0a4d8bb371a92eecbf7ad8, type: 3}
+  m_Name: P10_CH01_NODE_ORDER_001_ACCEPT
+  m_EditorClassIdentifier: 
+  NodeId: P10_CH01_NODE_ORDER_001_ACCEPT
+  ChapterState: 3
+  NodeKind: 3
+  OrderId: ORDER_001
+  SpeakerCharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+  TargetId: P10_CH01_ORDER_001
+  DialogueText: "我茶馆里的碗缺了几只，听说你们这窑又点火了，就来看看。要甜白釉茶碗，碗口宽一点，底要稳，别让客人端起来晃荡。釉色要白里带一点暖，不要冷冰冰的。"
+  DialogueLines:
+  - SpeakerCharacterId: P10_CH01_NPC_002_ZhouZhangGui_Placeholder
+    DialogueText: "我茶馆里的碗缺了几只，听说你们这窑又点火了，就来看看。要甜白釉茶碗，碗口宽一点，底要稳，别让客人端起来晃荡。釉色要白里带一点暖，不要冷冰冰的。"
+  - SpeakerCharacterId: P10_CH01_SPEAKER_SystemPrompt
+    DialogueText: "订单接受：甜白釉茶碗 × 3。要求：器型评分 ≥ 80，釉色评分 ≥ 75。奖励：50 铜钱，声望 +10。"
+  NextNodeIds:
+  - P10_CH01_NODE_ORDER_001_PASS
+  - P10_CH01_NODE_ORDER_001_FAIL
+  ReferencedPropIds: []
+  Conditions: []
