@@ -14,4 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Phase10_Narrative/Scenes/P10_CH01_NarrativeOverlay.unity
     guid: 1d77f550762f44dd8df60b55f083ace6
+  - enabled: 1
+    path: Assets/Phase9/Scenes/SampleScene.unity
+    guid: 8c9cfa26abfee488c85f1582747f6a02
   m_configObjects: {}

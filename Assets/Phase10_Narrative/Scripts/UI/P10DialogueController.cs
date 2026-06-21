@@ -886,7 +886,7 @@ namespace Phase10_Narrative
         }
     }
 
-    internal static class P10DialogueCatalog
+    public static class P10DialogueCatalog
     {
         private static readonly Dictionary<string, string> SpeakerNames = new Dictionary<string, string>
         {

@@ -18,6 +18,10 @@ Library/
 Temp/
 Logs/
 UserSettings/
+Builds/
+obj/
+.cache/
+Assets/Screenshots/
 
 # CodeBuddy
 .codebuddy/

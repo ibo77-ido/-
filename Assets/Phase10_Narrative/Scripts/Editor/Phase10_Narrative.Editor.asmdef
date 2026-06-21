@@ -1,0 +1,18 @@
+{
+    "name": "Phase10_Narrative.Editor",
+    "rootNamespace": "Phase10_Narrative.Editor",
+    "references": [
+        "Phase10_Narrative"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
