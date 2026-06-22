@@ -1,0 +1,1 @@
+{"chunk":0,"numChunks":1,"fileHash":"GoPlStu9p8n0hREDoMarf2RIozQ9TqW3YgRS+ghBbs0=","filePath":"ProjectSettings/TimeManager.asset","content":"%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!5 &1\nTimeManager:\n  m_ObjectHideFlags: 0\n  Fixed Timestep: 0.02\n  Maximum Allowed Timestep: 0.33333334\n  m_TimeScale: 1\n  Maximum Particle Timestep: 0.03\n"}

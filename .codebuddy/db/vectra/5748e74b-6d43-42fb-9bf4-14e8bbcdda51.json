@@ -1,0 +1,1 @@
+{"chunk":0,"numChunks":1,"fileHash":"QGDYDNFXQrBR8QZHNywUrVGfKjqE8OCMzY6VAJazwaI=","filePath":"Assets/Phase3/Scripts/Data/ShapeType.cs","content":"public enum ShapeType\n{\n    Bowl,\n    Vase,\n    Plate\n}\n"}

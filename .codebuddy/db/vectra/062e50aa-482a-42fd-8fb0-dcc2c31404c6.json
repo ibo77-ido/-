@@ -1,0 +1,1 @@
+{"chunk":1,"numChunks":3,"fileHash":"ijmyMaa4kl3tG5x2nhqXpcTJd3fnwjaxVcdMO7yUWEY=","filePath":"Assets/Phase3/Scripts/Systems/Result/ResultSystem.cs","content":"using UnityEngine;\npublic class ResultSystem : MonoBehaviour"}
