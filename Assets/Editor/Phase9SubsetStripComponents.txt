@@ -1,0 +1,4 @@
+SpriteRenderer
+NavMeshSurface
+BoxCollider
+ClearNavMeshModifier

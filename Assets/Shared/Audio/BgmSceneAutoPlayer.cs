@@ -9,6 +9,7 @@ public sealed class BgmSceneAutoPlayer : MonoBehaviour
 
     private void Start()
     {
+        Debug.Log("[BgmSceneAutoPlayer] Start");
         BgmPlayer.Play(bgmId, fadeInSeconds);
     }
 

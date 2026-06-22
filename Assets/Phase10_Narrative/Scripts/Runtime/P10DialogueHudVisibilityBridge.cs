@@ -24,6 +24,7 @@ namespace Phase10_Narrative
 
         private void Awake()
         {
+            Debug.Log("[P10DialogueHudVisibilityBridge] Awake");
             ResolveHudCanvasGroup();
             ResolveDialogueController();
             ApplyHudVisibility();

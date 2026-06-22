@@ -1,0 +1,20 @@
+﻿Main Camera
+Global Light 2D
+静态层
+Walkable
+_BridgeRoot
+水体内部静态
+水体外部流动
+NavMesh-walkable
+NavMeshWalkableBakeMesh_FromSprite
+Phase9_NavMeshSurface
+NavMeshWalkableBakeMesh_FromAlpha
+DepthSortManager
+HeroineRoot
+HUDCanvas
+EventSystem
+卢客
+周掌柜
+徐老伯
+陈书院
+P10_CH01_FlowController

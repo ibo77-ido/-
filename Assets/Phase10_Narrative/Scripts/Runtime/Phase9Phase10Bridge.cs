@@ -109,17 +109,21 @@ namespace Phase10_Narrative
 
         private void Awake()
         {
+            Debug.Log("[Phase9Phase10Bridge] Awake begin");
             BuildNpcBindingMap();
             ResolvePhase10References();
+            Debug.Log("[Phase9Phase10Bridge] Awake end");
         }
 
         private void Start()
         {
+            Debug.Log("[Phase9Phase10Bridge] Start");
             EnsureRuntimeCoroutinesStarted();
         }
 
         private void OnEnable()
         {
+            Debug.Log("[Phase9Phase10Bridge] OnEnable");
             SceneManager.sceneLoaded += OnUnitySceneLoaded;
             EnsureRuntimeCoroutinesStarted();
         }
@@ -1065,6 +1069,12 @@ namespace Phase10_Narrative
 
             if (autoStartChapterOnSceneReady)
             {
+                if (!IsPhase10RuntimeReady() && !CanLoadOverlayScene())
+                {
+                    Debug.LogWarning("[Phase9Phase10Bridge] Phase10 overlay scene is not included in this build. Installing safe narrative runtime: " + overlaySceneName);
+                    EnsureSafePhase10Runtime();
+                }
+
                 yield return WaitForPhase10RuntimeReady();
                 if (!TryRecoverOpeningNarrationNode())
                 {
@@ -1094,6 +1104,13 @@ namespace Phase10_Narrative
                 yield break;
             }
 
+            if (!CanLoadOverlayScene())
+            {
+                Debug.LogWarning("[Phase9Phase10Bridge] Phase10 overlay scene is not available in this build: " + overlaySceneName);
+                EnsureSafePhase10Runtime();
+                yield break;
+            }
+
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(overlaySceneName, LoadSceneMode.Additive);
             if (loadOperation == null)
             {
@@ -1106,6 +1123,53 @@ namespace Phase10_Narrative
             }
 
             ResolvePhase10References();
+        }
+
+        private bool CanLoadOverlayScene()
+        {
+            return !string.IsNullOrWhiteSpace(overlaySceneName)
+                && Application.CanStreamedLevelBeLoaded(overlaySceneName);
+        }
+
+        private void EnsureSafePhase10Runtime()
+        {
+            if (narrativeManager == null)
+            {
+                narrativeManager = FindObjectOfType<P10NarrativeManager>();
+            }
+
+            if (narrativeManager == null)
+            {
+                GameObject narrativeObject = new GameObject("P10_SafeNarrativeManager");
+                narrativeObject.transform.SetParent(transform, false);
+                narrativeManager = narrativeObject.AddComponent<P10NarrativeManager>();
+            }
+
+            if (dialogueController == null)
+            {
+                dialogueController = FindObjectOfType<P10DialogueController>();
+            }
+
+            if (dialogueController == null)
+            {
+                GameObject dialogueObject = new GameObject("P10_SafeDialogueController");
+                dialogueObject.transform.SetParent(narrativeManager.transform, false);
+                dialogueController = dialogueObject.AddComponent<P10DialogueController>();
+            }
+
+            if (flowController == null)
+            {
+                flowController = FindObjectOfType<P10CH01FlowController>();
+            }
+
+            if (flowController == null)
+            {
+                GameObject flowObject = new GameObject("P10_CH01_FlowController");
+                flowObject.transform.SetParent(transform, false);
+                flowController = flowObject.AddComponent<P10CH01FlowController>();
+            }
+
+            flowController.BindNarrativeManager(narrativeManager);
         }
 
         private readonly struct NpcBinding

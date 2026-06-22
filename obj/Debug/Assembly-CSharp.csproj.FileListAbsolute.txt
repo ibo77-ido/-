@@ -4,3 +4,6 @@ D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp.csproj.AssemblyReferenc
 D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp.csproj.CoreCompileInputs.cache
 D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp.dll
 D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp.pdb
+D:\unity\UnityProject\Director\Temp\bin\Debug\Phase10_Narrative.pdb
+D:\unity\UnityProject\Director\Temp\bin\Debug\Phase10_Narrative.Editor.pdb
+D:\unity\UnityProject\Director\obj\Debug\Assembly.44154EF1.Up2Date

@@ -19,16 +19,20 @@ public class MovementController : MonoBehaviour
     private Vector3[] pathCorners = new Vector3[0];
     private int currentCornerIndex;
     private bool hasDestination;
+    private Vector3 fallbackDestination;
     private Vector3 manualVelocity;
 
     private void Awake()
     {
+        Debug.Log("[MovementController] Awake begin");
         navMeshAgent = GetComponent<NavMeshAgent>();
         ConfigureManualMovement();
+        Debug.Log("[MovementController] Awake end");
     }
 
     private void OnEnable()
     {
+        Debug.Log("[MovementController] OnEnable");
         ConfigureManualMovement();
     }
 
@@ -39,8 +43,14 @@ public class MovementController : MonoBehaviour
 
     public void TickManualMovement(float deltaTime)
     {
-        if (!hasDestination || navMeshAgent == null) return;
+        if (!hasDestination) return;
         if (deltaTime <= 0f) return;
+        if (navMeshAgent == null)
+        {
+            TickFallbackMovement(deltaTime);
+            return;
+        }
+
         if (!EnsureOnNavMesh()) return;
 
         if (pathCorners == null || pathCorners.Length == 0 || currentCornerIndex >= pathCorners.Length)
@@ -133,7 +143,20 @@ public class MovementController : MonoBehaviour
 
     public bool TrySetDestination(Vector3 target)
     {
-        if (!EnsureOnNavMesh()) return false;
+        if (navMeshAgent == null)
+        {
+            fallbackDestination = target;
+            hasDestination = true;
+            return true;
+        }
+
+        if (!EnsureOnNavMesh())
+        {
+            fallbackDestination = target;
+            hasDestination = true;
+            return true;
+        }
+
         ConfigureManualMovement();
 
         NavMeshHit hit;
@@ -165,7 +188,9 @@ public class MovementController : MonoBehaviour
             }
         }
 
-        return false;
+        fallbackDestination = target;
+        hasDestination = true;
+        return true;
     }
 
     public void Stop()
@@ -183,6 +208,11 @@ public class MovementController : MonoBehaviour
 
     public bool IsMoving()
     {
+        if (navMeshAgent == null)
+        {
+            return hasDestination && !HasReachedFallbackDestination();
+        }
+
         return hasDestination && navMeshAgent != null && (mapNavMeshZToTransformY || navMeshAgent.isOnNavMesh)
             && !HasReachedDestination();
     }
@@ -203,6 +233,25 @@ public class MovementController : MonoBehaviour
 
         float stoppingDistance = GetStoppingDistance();
         return (currentPosition - destination).sqrMagnitude <= stoppingDistance * stoppingDistance;
+    }
+
+    private void TickFallbackMovement(float deltaTime)
+    {
+        if (HasReachedFallbackDestination())
+        {
+            CompleteDestination();
+            return;
+        }
+
+        Vector3 nextPosition = Vector3.MoveTowards(transform.position, fallbackDestination, fallbackSpeed * deltaTime);
+        manualVelocity = (nextPosition - transform.position) / deltaTime;
+        transform.position = nextPosition;
+    }
+
+    private bool HasReachedFallbackDestination()
+    {
+        float stoppingDistance = Mathf.Max(0.01f, fallbackStoppingDistance);
+        return (transform.position - fallbackDestination).sqrMagnitude <= stoppingDistance * stoppingDistance;
     }
 
     private void CompleteDestination()

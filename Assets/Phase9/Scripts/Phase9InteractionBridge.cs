@@ -49,6 +49,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
     private GraphicRaycaster phase3GraphicRaycaster;
     private RuntimeMode currentRuntimeMode = RuntimeMode.WorldMode;
     private bool isPhase3Loaded;
+    private bool phase3SceneCanBeLoaded;
     private bool allowPhase3Progression;
     private bool orderDone;
     private bool shapeDone;
@@ -76,6 +77,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
     private void Awake()
     {
+        Debug.Log("[Phase9InteractionBridge] Awake begin");
         EnsureCanvasRoot();
         RegisterEntryPoints();
         ResolvePlayerReferences();
@@ -84,10 +86,20 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         UpdateNavMeshPlaneY();
 
         SceneManager.sceneLoaded += OnSceneLoaded;
-        if (!SceneManager.GetSceneByName(phase3SceneName).isLoaded)
+        TryBindPhase3Scene(SceneManager.GetActiveScene());
+        phase3SceneCanBeLoaded = CanLoadPhase3Scene();
+        if (!phase3SceneCanBeLoaded && !isPhase3Loaded)
         {
+            Debug.LogWarning("[Phase9InteractionBridge] Phase3 scene is not included in this build. Installing safe runtime module: " + phase3SceneName);
+            SafePhase3RuntimeInstaller.EnsureInstalled(transform);
+            TryBindPhase3Scene(SceneManager.GetActiveScene());
+        }
+        else if (!isPhase3Loaded && !SceneManager.GetSceneByName(phase3SceneName).isLoaded)
+        {
+            Debug.Log("[Phase9InteractionBridge] Loading additive scene: " + phase3SceneName);
             SceneManager.LoadSceneAsync(phase3SceneName, LoadSceneMode.Additive);
         }
+        Debug.Log("[Phase9InteractionBridge] Awake end");
     }
 
     private void OnDestroy()
@@ -122,7 +134,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             return;
         }
 
-        if (currentRuntimeMode != RuntimeMode.WorldMode || !isPhase3Loaded)
+        if (currentRuntimeMode != RuntimeMode.WorldMode)
         {
             return;
         }
@@ -143,7 +155,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
     public bool CanMoveInWorldMode()
     {
-        return currentRuntimeMode == RuntimeMode.WorldMode && isPhase3Loaded;
+        return currentRuntimeMode == RuntimeMode.WorldMode && (isPhase3Loaded || !phase3SceneCanBeLoaded);
     }
 
     public bool TryEnterNearestGameplayModule()
@@ -169,6 +181,19 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
         SfxPlayer.Play(SfxId.InteractSuccess);
         EnterGameplay(nearest.AreaType);
+        return true;
+    }
+
+    public bool TryEnterGameplayModule(AreaType areaType)
+    {
+        if (areaType == AreaType.None || currentRuntimeMode != RuntimeMode.WorldMode || !isPhase3Loaded || phase3GameManager == null)
+        {
+            SfxPlayer.Play(SfxId.InteractFail);
+            return false;
+        }
+
+        SfxPlayer.Play(SfxId.InteractSuccess);
+        EnterGameplay(areaType);
         return true;
     }
 
@@ -215,8 +240,23 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
             return;
         }
 
+        TryBindPhase3Scene(scene);
+    }
+
+    private void TryBindPhase3Scene(Scene scene)
+    {
+        if (isPhase3Loaded || !scene.IsValid())
+        {
+            return;
+        }
+
         RemoveDuplicateEventSystems(scene);
         BindPhase3References(scene);
+        if (phase3GameManager == null)
+        {
+            return;
+        }
+
         ReparentPhase3Canvas(scene);
         DisablePhase3Cameras(scene);
         EnsureEventSystem();
@@ -351,6 +391,12 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
         HideGameplayUI();
         currentRuntimeMode = RuntimeMode.WorldMode;
+    }
+
+    private bool CanLoadPhase3Scene()
+    {
+        return !string.IsNullOrWhiteSpace(phase3SceneName)
+            && Application.CanStreamedLevelBeLoaded(phase3SceneName);
     }
 
     private bool IsRoundComplete()
@@ -754,7 +800,7 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
 
         if (!ResolveWalkableArea())
         {
-            return false;
+            return TryResolveFallbackMoveTarget(screenPosition, out navTarget);
         }
 
         Vector3 worldPoint;
@@ -807,6 +853,31 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         }
 
         navTarget = targetHit.position;
+        return true;
+    }
+
+    private bool TryResolveFallbackMoveTarget(Vector3 screenPosition, out Vector3 navTarget)
+    {
+        navTarget = Vector3.zero;
+        if (!ResolveTargetCamera())
+        {
+            return false;
+        }
+
+        Vector3 worldPoint;
+        if (!TryGetWorldPointOnMapPlane(screenPosition, out worldPoint))
+        {
+            return false;
+        }
+
+        Bounds bounds;
+        if (TryGetWorldBounds(out bounds))
+        {
+            worldPoint.x = Mathf.Clamp(worldPoint.x, bounds.min.x, bounds.max.x);
+            worldPoint.z = Mathf.Clamp(worldPoint.z, bounds.min.z, bounds.max.z);
+        }
+
+        navTarget = worldPoint;
         return true;
     }
 
@@ -1172,6 +1243,33 @@ public sealed class Phase9InteractionBridge : MonoBehaviour, IGameplayProgressio
         }
 
         return walkableRenderer != null;
+    }
+
+    private static bool TryGetWorldBounds(out Bounds bounds)
+    {
+        bounds = new Bounds(Vector3.zero, Vector3.zero);
+        bool hasBounds = false;
+        Renderer[] renderers = FindObjectsOfType<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null || !renderer.enabled || renderer.GetComponentInParent<Canvas>(true) != null)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return hasBounds;
     }
 
     private bool ResolveTargetCamera()

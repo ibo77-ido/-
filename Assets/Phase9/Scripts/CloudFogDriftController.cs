@@ -19,12 +19,19 @@ public sealed class CloudFogDriftController : MonoBehaviour
 
     private void OnEnable()
     {
-        CacheTargets();
+        CacheTargets(Application.isPlaying);
     }
 
     private void OnValidate()
     {
-        CacheTargets();
+#if UNITY_EDITOR
+        if (UnityEditor.BuildPipeline.isBuildingPlayer)
+        {
+            return;
+        }
+#endif
+
+        CacheTargets(Application.isPlaying);
         if (Application.isPlaying)
         {
             Apply(Time.time);
@@ -43,7 +50,15 @@ public sealed class CloudFogDriftController : MonoBehaviour
 
     public void CacheTargets()
     {
-        EnsureCloudLayerChildren();
+        CacheTargets(Application.isPlaying);
+    }
+
+    private void CacheTargets(bool createMissingChildren)
+    {
+        if (createMissingChildren)
+        {
+            EnsureCloudLayerChildren();
+        }
 
         SpriteRenderer[] allRenderers = GetComponentsInChildren<SpriteRenderer>(true);
         int eligibleCount = 0;

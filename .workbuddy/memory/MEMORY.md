@@ -7,7 +7,7 @@
 - **Phase11**：HUD 交互层（纯引用，不修改下层代码）
 
 ## 核心设计原则
-- HUD 层零侵入：通过 FindObjectOfType 查找 + 调用已有 public 方法，不修改 Phase3/6/8 任何文件
+- HUD 层零侵入（设计目标）：应通过事件/接口通信。注意：2026-06-22 诊断发现实际已违规——Phase11 用 FindObjectOfType 硬引用了 Phase6/Phase9 具体类型，需改为事件通信
 - 玩家移动：右键点地板 → PlayerCharacter.SetDestination() → MovementController 手动驱动 NavMesh
 - 交互触发：InteractionController.TryInteract() → Workstation.Interact() → IInteractionEntryHandler
 
@@ -31,3 +31,19 @@
 - role-mobile Step 1 completed: movement chain identified as `Phase9InteractionBridge -> PlayerCharacter -> MovementController`; player uses manual NavMesh path-corner movement.
 - role-mobile Step 2 completed: click target parsing now resolves `NavMesh-walkable` and no longer depends on Sprite Tight Mesh coverage.
 - Next role-mobile task: Step 3, verify `女主` has `PathComplete` routes to `Order-interact`, `Shape-interact`, `Glaze-interact`, and `Kiln-interact`.
+
+## 团队职责划分（用户2026-06-22澄清）
+- **美术只负责素材创作（画图/导出序列帧/写Shader），不负责 Unity 内资源管理**
+- 技术美术工作（图集/压缩/Prefab结构/Shader迁移/材质库）当前无专人负责，由程序兼任
+- 团队没有 Tech Art 角色——这是美术管线缺失的根源，不是美术的错
+- 程序需兼做技术美术：建图集、统一压缩是最高性价比的改进（半天工作量，包体砍半）
+
+## 项目诊断结论 - 2026-06-22（中厂标准评估）
+- 报告路径：`Docs/项目诊断报告_中厂标准评估.md`
+- **架构决策**：值得继续做，需"局部重构+全面规范"，不推倒重做
+- **P0 止血项**：①找回StoryMain.md ②统一双桥接(Phase8/9二选一) ③Phase11改事件通信 ④建Sprite Atlas ⑤统一PNG压缩 ⑥清理调试文件
+- **三职位评分**：策划6.5 程序4.5 美术3.5（满分10，中厂基线8）
+- **核心矛盾**：重流程轻内容（AGENTS体系18份规范但StoryMain丢失）、重框架轻落地
+- **开发模式实况**：实质"1人+AI Agent"模式，非PPT所述3人协作（AI生成代码埋下反射/God Object隐患）
+- **值得保留**：Phase3数值数据库+评分模型(9/10)、IGameplayProgressionAuthority接口解耦、6个水墨Shader、DECISIONS.md的68条ADR
+- **需重构**：Phase9/8双桥接统一、Phase10反射改接口、God Object拆分、asmdef程序集隔离

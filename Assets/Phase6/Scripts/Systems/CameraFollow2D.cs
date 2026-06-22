@@ -23,6 +23,7 @@ public class CameraFollow2D : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("[CameraFollow2D] Awake begin");
         cam = GetComponent<Camera>();
         fixedRotation = transform.rotation;
         fixedZ = transform.position.z;
@@ -31,6 +32,7 @@ public class CameraFollow2D : MonoBehaviour
         ConfigureCamera();
         RebuildBounds();
         SnapToTarget();
+        Debug.Log("[CameraFollow2D] Awake end");
     }
 
     private void LateUpdate()

@@ -18,16 +18,19 @@ public class PlayerCharacter : MonoBehaviour, ICharacter
 
     private void Awake()
     {
+        Debug.Log("[PlayerCharacter] Awake begin");
         if (movementController == null) movementController = GetComponent<MovementController>();
         if (stateMachine == null) stateMachine = GetComponent<CharacterStateMachine>();
         if (navMeshAgent == null) navMeshAgent = GetComponent<NavMeshAgent>();
         if (logicRoot == null) logicRoot = transform.Find("LogicRoot");
         if (artRoot == null) artRoot = transform.Find("ArtRoot");
         if (interactionController == null) interactionController = GetComponent<InteractionController>();
+        Debug.Log("[PlayerCharacter] Awake end");
     }
 
     private void Start()
     {
+        Debug.Log("[PlayerCharacter] Start begin");
         if (config != null && navMeshAgent != null)
         {
             navMeshAgent.speed = config.moveSpeed;
@@ -39,6 +42,7 @@ public class PlayerCharacter : MonoBehaviour, ICharacter
         {
             movementController.EnsureOnNavMesh();
         }
+        Debug.Log("[PlayerCharacter] Start end");
     }
 
     public void SetDestination(Vector3 target)

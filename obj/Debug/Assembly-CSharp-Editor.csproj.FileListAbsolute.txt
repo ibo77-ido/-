@@ -6,3 +6,5 @@ D:\unity\UnityProject\Director\Temp\bin\Debug\Assembly-CSharp.pdb
 D:\unity\UnityProject\Director\obj\Debug\Assembly.1F1299F3.Up2Date
 D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp-Editor.dll
 D:\unity\UnityProject\Director\obj\Debug\Assembly-CSharp-Editor.pdb
+D:\unity\UnityProject\Director\Temp\bin\Debug\Phase10_Narrative.pdb
+D:\unity\UnityProject\Director\Temp\bin\Debug\Phase10_Narrative.Editor.pdb
